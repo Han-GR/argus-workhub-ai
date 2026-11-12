@@ -1,0 +1,85 @@
+// 列表项入场动画
+// 使用 stagger 实现逐项淡入上移效果
+
+// 单一项入场
+@keyframes argus-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes argus-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes argus-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// 逐项动画混入 — 子项按 index 延迟入场
+// 使用方式：在列表容器上应用 .argus-stagger-enter
+.argus-stagger-enter {
+  > * {
+    animation: argus-fade-in-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  @for $i from 1 through 20 {
+    > *:nth-child(#{$i}) {
+      animation-delay: #{$i * 0.05}s;
+    }
+  }
+}
+
+// 淡入类
+.argus-fade-enter {
+  animation: argus-fade-in 0.3s ease both;
+}
+
+// 右滑入类
+.argus-slide-right-enter {
+  animation: argus-slide-in-right 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// Vue Transition 使用的类名
+.argus-list-enter-active {
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.argus-list-leave-active {
+  position: absolute; // 让离开动画不影响其他元素布局
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.argus-list-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.argus-list-leave-to {
+  opacity: 0;
+  transform: translateX(-12px);
+}
+
+.argus-list-move {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

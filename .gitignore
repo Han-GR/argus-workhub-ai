@@ -218,3 +218,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local pnpm cache
+.pnpm-store/
+
+# AI
+docs/*
+
+# Project configuration templates and public frontend defaults
+.idea/
+!backend/env/
+backend/env/*
+!backend/env/.env.example
+!frontend/web/.env

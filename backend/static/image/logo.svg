@@ -1,0 +1,5 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Argus">
+  <defs><linearGradient id="argus-brand" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6BFF"/><stop offset="1" stop-color="#6D5BFF"/></linearGradient></defs>
+  <rect width="240" height="240" rx="56" fill="url(#argus-brand)"/>
+  <path fill="#FFF" fill-rule="evenodd" d="M102 48H138L194 192H154L144 162H96L86 192H46L102 48ZM108 128H132L120 91L108 128Z"/>
+</svg>

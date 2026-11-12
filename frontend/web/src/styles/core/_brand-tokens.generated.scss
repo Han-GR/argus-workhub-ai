@@ -1,0 +1,62 @@
+// 由 design/tokens.json 生成，请勿手改。
+:root {
+  --argus-brand-blue: #4F6BFF;
+  --argus-brand-violet: #6D5BFF;
+  --argus-brand-gradient: linear-gradient(135deg, #4F6BFF 0%, #6D5BFF 100%);
+  --argus-canvas: #F5F6F8;
+  --argus-radius-xs: 6px;
+  --argus-radius-sm: 8px;
+  --argus-radius-md: 12px;
+  --argus-radius-lg: 16px;
+  --argus-radius-pill: 999px;
+  --argus-space-1: 4px;
+  --argus-space-2: 8px;
+  --argus-space-3: 12px;
+  --argus-space-4: 16px;
+  --argus-space-5: 20px;
+  --argus-space-6: 24px;
+  --argus-font-xs: 12px;
+  --argus-font-sm: 13px;
+  --argus-font-md: 14px;
+  --argus-font-lg: 16px;
+  --argus-font-xl: 20px;
+  --argus-font-xxl: 24px;
+  --argus-control-h-sm: 24px;
+  --argus-control-h-md: 32px;
+  --argus-control-h-lg: 40px;
+  --argus-table-row-h: 40px;
+  --argus-table-header-h: 44px;
+  --argus-page-padding: 16px;
+  --argus-header-h: 56px;
+  --argus-shadow-card: 0 1px 2px rgb(16 24 40 / 4%);
+  --argus-shadow-pop: 0 4px 16px rgb(16 24 40 / 8%), 0 2px 8px rgb(16 24 40 / 4%);
+  --argus-shadow-modal: 0 24px 64px rgb(16 24 40 / 18%);
+  --argus-font-sans: inter, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --argus-table-header-bg: #F9FAFB;
+  --argus-input-bg: #FFF;
+  --argus-dialog-bg: #FFF;
+  --argus-popover-bg: #FFF;
+  --argus-overlay-bg: rgb(0 0 0 / 50%);
+  --el-fill-color-blank: var(--argus-input-bg);
+  --el-dialog-bg-color: var(--argus-dialog-bg);
+  --el-bg-color-overlay: var(--argus-popover-bg);
+  --el-overlay-color-lighter: var(--argus-overlay-bg);
+}
+
+html.dark {
+  --argus-canvas: #15181E;
+  --argus-surface: #15181E;
+  --argus-surface-2: #191D24;
+  --argus-border: #262B34;
+  --argus-text-1: #E5E7EB;
+  --argus-text-2: #A3AAB8;
+  --argus-text-3: #8B93A1;
+  --argus-shadow-card: 0 1px 2px rgb(0 0 0 / 35%);
+  --argus-shadow-pop: 0 4px 16px rgb(0 0 0 / 35%), 0 2px 8px rgb(0 0 0 / 25%);
+  --argus-shadow-modal: 0 24px 64px rgb(0 0 0 / 45%);
+  --argus-table-header-bg: #1B1E24;
+  --argus-input-bg: #1B1E24;
+  --argus-dialog-bg: #1B1E24;
+  --argus-popover-bg: #23262E;
+  --argus-overlay-bg: rgb(0 0 0 / 65%);
+}

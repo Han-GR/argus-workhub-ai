@@ -1,0 +1,150 @@
+// ─────────────────────────────────────────────────────────────────────
+// 运维类页面共用小组件（SQL 控制台 / SSH 运维 / 文件浏览）
+// 目标：布局可以不同，但列表项、状态点、终端、提示文字、卡片块、等宽输入
+// 的圆角 / 字号 / 颜色统一走同一套 token，避免各页面各写一套。
+// ─────────────────────────────────────────────────────────────────────
+
+:root {
+  --argus-font-size-sm: var(--argus-font-sm, 12px);
+  --argus-font-size-md: var(--argus-font-md, 14px);
+  --argus-font-size-title: var(--argus-font-md, 14px);
+}
+
+// 面板头（左右栏卡片顶部那一行）
+.argus-panel-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.argus-panel-title {
+  font-size: var(--argus-font-size-title);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--el-text-color-primary);
+}
+
+// 次要说明文字
+.argus-hint {
+  font-size: var(--argus-font-size-sm);
+  color: var(--el-text-color-secondary);
+}
+
+// 面板内分隔线（如「库 / 表」）
+.argus-panel-sep {
+  padding: 8px 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+// 列表项（连接 / 主机 / 表名），统一样式与交互
+.argus-list-item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border-radius: var(--argus-radius-sm);
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+  }
+
+  &.is-active {
+    background: var(--el-color-primary-light-9);
+  }
+}
+
+.argus-list-item--sm {
+  padding: 5px 10px;
+}
+
+.argus-list-item__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--argus-font-size-md);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.argus-list-item__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--argus-font-size-sm);
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+}
+
+// 行内悬浮操作（「更多」等）
+.argus-list-item__action {
+  flex-shrink: 0;
+  color: var(--el-text-color-secondary);
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  .argus-list-item:hover & {
+    opacity: 1;
+  }
+}
+
+// 状态点
+.argus-status-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+// 等宽文本 / 等宽输入框
+.argus-mono,
+.argus-mono-textarea .el-textarea__inner {
+  font-family: var(--argus-font-mono);
+  font-size: var(--argus-font-size-md);
+  line-height: 1.6;
+}
+
+// 终端输出区
+.argus-terminal {
+  padding: 12px;
+  margin: 0;
+  font-family: var(--argus-font-mono);
+  font-size: var(--argus-font-size-sm);
+  line-height: 1.55;
+  color: var(--argus-terminal-fg);
+  white-space: pre-wrap;
+  background: var(--argus-terminal-bg);
+  border-radius: var(--argus-radius-md);
+}
+
+// 卡片块（批量执行结果 / 命令片段等）
+.argus-block-card {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--argus-radius-sm);
+}
+
+.argus-block-card__output {
+  max-height: 208px;
+  padding: 8px;
+  margin: 6px 0 0;
+  overflow: auto;
+  font-family: var(--argus-font-mono);
+  font-size: var(--argus-font-size-sm);
+  line-height: 1.5;
+  color: var(--argus-terminal-fg);
+  white-space: pre-wrap;
+  background: var(--argus-terminal-bg);
+  border-radius: var(--argus-radius-xs, 6px);
+}
+
+// 工具栏里的短标签不换行（窄屏时整块折行，而不是逐字竖排）
+.argus-panel-header .argus-hint,
+.argus-panel-header .argus-panel-title {
+  white-space: nowrap;
+}

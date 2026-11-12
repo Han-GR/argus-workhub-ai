@@ -1,0 +1,83 @@
+// ============================================================
+// 设计 Token（阶段 0 基线）
+// 全站唯一来源：颜色 / 圆角 / 间距 / 字号 / 图标 / 终端 / 阴影
+// 规则：views 与 components 不再写十六进制颜色，统一引用这里或 EP 变量
+// ============================================================
+:root {
+  color-scheme: light;
+
+  /* 表面与边框 */
+  --argus-surface: #fff;
+  --argus-surface-2: #fafbfc;
+  --argus-border: #e6e8ec;
+  --argus-border-subtle: #eef0f3;
+
+  /* 文字层级（AA：正文 ≥4.5:1） */
+  --argus-text-1: #111827;
+  --argus-text-2: #4b5563;
+  --argus-text-3: #6b7280;
+
+  /* 圆角 / 间距 / 字号 / 图标 */
+  /* 固定 px 圆角，避免 rem 随根字号（14px）换算成 7px 这类碎值 */
+  --argus-radius-xs: 6px;
+  --argus-radius-sm: 8px;
+  --argus-radius-md: 12px;
+  --argus-radius-lg: 16px;
+  --argus-radius-pill: 999px;
+  --argus-space-1: 4px;
+  --argus-space-2: 8px;
+  --argus-space-3: 12px;
+  --argus-space-4: 16px;
+  --argus-space-5: 24px;
+  --argus-font-sm: 12px;
+  --argus-font-md: 14px;
+  --argus-font-lg: 20px;
+  --argus-font-mono: "SFMono-Regular", menlo, consolas, "Liberation Mono", monospace;
+  --argus-icon-sm: 14px;
+  --argus-icon-md: 16px;
+  --argus-icon-lg: 20px;
+  --argus-icon-empty: 60px;
+
+  /* 终端（浅色不再纯黑） */
+  --argus-terminal-bg: #f5f6f8;
+  --argus-terminal-fg: #303133;
+
+  /* 阴影 */
+  --argus-shadow-card: 0 1px 2px rgb(16 24 40 / 4%);
+  --argus-shadow-pop: 0 4px 16px rgb(16 24 40 / 8%), 0 2px 8px rgb(16 24 40 / 4%);
+  --argus-shadow-modal: 0 24px 64px rgb(16 24 40 / 18%);
+
+  /* 空状态 */
+  --argus-empty-size: 60px;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  --argus-surface: #15181e;
+  --argus-surface-2: #191d24;
+  --argus-border: #262b34;
+  --argus-border-subtle: #20242c;
+  --argus-text-1: #e5e7eb;
+  --argus-text-2: #a3aab8;
+  --argus-text-3: #8b93a1;
+  --argus-terminal-bg: #0b0d10;
+  --argus-terminal-fg: #d4d4d4;
+  --argus-shadow-card: 0 1px 2px rgb(0 0 0 / 35%);
+  --argus-shadow-pop: 0 4px 16px rgb(0 0 0 / 35%), 0 2px 8px rgb(0 0 0 / 25%);
+  --argus-shadow-modal: 0 24px 64px rgb(0 0 0 / 45%);
+}
+
+/* 工具类 */
+.argus-tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.argus-mono {
+  font-family: var(--argus-font-mono);
+}
+
+.argus-hint {
+  font-size: var(--argus-font-sm);
+  color: var(--argus-text-3);
+}

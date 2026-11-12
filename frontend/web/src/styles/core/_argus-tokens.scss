@@ -1,0 +1,11 @@
+// 主题色 token 单一来源（partial，不单独编译）
+// 任何 SCSS 模块需要使用功能性色 hex 值，都从这里 @use 引入：
+//   @use "@styles/core/argus-tokens" as *;
+// 保证整个项目只有这一处定义 success/warning/danger/error/info 的 hex 值。
+
+$argus-primary: #4080ff;
+$argus-success: #13deb9;
+$argus-warning: #ffae1f;
+$argus-danger: #ff4d4f;
+$argus-error: #fa896b;
+$argus-info: #909399;
