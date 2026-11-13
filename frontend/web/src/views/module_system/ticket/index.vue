@@ -1,899 +1,705 @@
 <template>
-  <div class="argus-full-height">
-    <ArgusSearchBar
-      v-show="showSearchBar"
-      v-model="searchForm"
-      :items="ticketSearchItems"
-      :is-expand="false"
-      :show-expand="true"
-      :show-reset="true"
-      :show-search="true"
-      :disabled-search="false"
-      :default-expanded="false"
-      include-audit
-      @search="handleSearchBarSearch"
-      @reset="onResetSearch"
-    />
+  <div class="task-page">
+    <header class="task-header">
+      <div>
+        <h2>任务协同</h2>
+        <p>明确负责人和交付时间，一起推进团队工作。</p>
+      </div>
+      <ElButton v-hasPerm="['module_system:ticket:create']" type="primary" @click="openEditor()">
+        <ArgusSvgIcon icon="ri:add-line" class="mr-1" />新建任务
+      </ElButton>
+    </header>
 
-    <ElCard class="argus-table-card" :style="{ 'margin-top': showSearchBar ? '12px' : '0' }">
-      <ArgusTableHeader
-        v-model:columns="columnChecks"
-        v-model:showSearchBar="showSearchBar"
-        :loading="loading"
-        layout="search,refresh"
-        @refresh="fetchData"
-      >
-        <template #left>
-          <ElButton
-            v-hasPerm="['module_system:ticket:create']"
-            type="primary"
-            @click="handleOpenDialog('create')"
-          >
-            <ElIcon><ArgusSvgIcon icon="ri:add-line" /></ElIcon>
-            提交工单
-          </ElButton>
-          <ElButton
-            v-hasPerm="['module_system:ticket:delete']"
-            v-if="selectedIds.length"
-            type="danger"
-            :loading="batchDeleting"
-            @click="handleBatchDelete"
-          >
-            <ElIcon><ArgusSvgIcon icon="ri:delete-bin-4-line" /></ElIcon>
-            批量删除
-          </ElButton>
-        </template>
-      </ArgusTableHeader>
-
-      <ArgusCardGrid
-        :items="data"
-        :pagination="{ current: pageNo, size: pageSize, total }"
-        :loading="loading"
-        :lg="4"
-        empty-text="暂无工单"
-        @pagination:size-change="onPageSizeChange"
-        @pagination:current-change="onPageCurrentChange"
-      >
-        <template #empty>
-          <ArgusEmptyState
-            icon="ri:file-list-3-line"
-            title="暂无工单"
-            description="提交一个问题、建议或优化想法，我们会尽快处理"
-          >
-            <ElButton
-              v-hasPerm="['module_system:ticket:create']"
-              type="primary"
-              size="small"
-              @click="handleOpenDialog('create')"
-            >
-              提交工单
-            </ElButton>
-          </ArgusEmptyState>
-        </template>
-        <template #header="{ item }">
-          <div class="flex items-center gap-2 min-w-0">
-            <span
-              class="flex shrink-0 items-center justify-center w-5 h-5 rounded text-[10px]"
-              :class="typeIconClass(item.ticket_type!)"
-            >
-              <ArgusSvgIcon :icon="typeIcon(item.ticket_type!)" />
-            </span>
-            <span class="flex-1 truncate text-sm font-semibold">{{ item.title }}</span>
-            <ElTag
-              size="small"
-              :type="statusTagType(String(item.status))"
-              effect="dark"
-              class="shrink-0"
-            >
-              {{ statusLabel(item.status ?? 0) }}
-            </ElTag>
-          </div>
-        </template>
-
-        <template #default="{ item }">
-          <div class="flex flex-col cursor-pointer" @click="handleOpenDialog('detail', item.id!)">
-            <div
-              class="flex items-center gap-1.5 text-xs"
-              style="color: var(--el-text-color-secondary)"
-            >
-              <ArgusSvgIcon icon="ri:user-3-line" class="shrink-0" />
-              <span
-                >{{ item.created_by?.name ?? "—" }} ·
-                {{ item.created_time ? formatToDate(item.created_time, "YYYY-MM-DD") : "" }}</span
-              >
-            </div>
-            <div class="flex items-center justify-between">
-              <div
-                class="flex items-center gap-1.5 text-xs"
-                style="color: var(--el-text-color-secondary)"
-              >
-                <ArgusSvgIcon icon="ri:user-add-line" class="shrink-0" />
-                <span>{{ item.assigned_by?.name ?? "未分配" }}</span>
-              </div>
-              <ElTag size="small" effect="light" :type="typeTag(item.ticket_type!)">
-                {{ typeLabel(item.ticket_type!) }}
-              </ElTag>
-            </div>
-          </div>
-        </template>
-
-        <template #footer="{ item }">
-          <ElRow :gutter="6" @click.stop>
-            <ElCol :span="8">
-              <ElButton
-                v-if="item.status! < 3"
-                v-hasPerm="['module_system:ticket:update']"
-                size="small"
-                plain
-                type="primary"
-                class="w-full"
-                @click="handleOpenDialog('update', item.id!)"
-              >
-                处理
-              </ElButton>
-            </ElCol>
-            <ElCol :span="8">
-              <ElButton
-                v-if="item.status! < 3"
-                v-hasPerm="['module_system:ticket:update']"
-                size="small"
-                plain
-                type="warning"
-                class="w-full"
-                @click="closeTicket(item.id!)"
-              >
-                关闭
-              </ElButton>
-            </ElCol>
-            <ElCol :span="8">
-              <ElButton
-                v-hasPerm="['module_system:ticket:delete']"
-                size="small"
-                plain
-                type="danger"
-                class="w-full"
-                @click="deleteTicketRow(item.id!, item.title ?? '')"
-              >
-                删除
-              </ElButton>
-            </ElCol>
-          </ElRow>
-        </template>
-      </ArgusCardGrid>
+    <ElCard shadow="never" class="mb-4">
+      <div class="task-filters">
+        <ElRadioGroup v-model="view" @change="resetPage">
+          <ElRadioButton value="all">全部可见</ElRadioButton>
+          <ElRadioButton value="assigned">我负责的</ElRadioButton>
+          <ElRadioButton value="created">我创建的</ElRadioButton>
+        </ElRadioGroup>
+        <ElInput
+          v-model="filters.title"
+          placeholder="搜索任务标题"
+          clearable
+          class="task-search"
+          @keyup.enter="resetPage"
+          @clear="resetPage"
+        />
+        <ElSelect
+          v-model="filters.status"
+          placeholder="全部状态"
+          clearable
+          class="task-select"
+          @change="resetPage"
+        >
+          <ElOption v-for="(label, i) in statuses" :key="i" :label="label" :value="i" />
+        </ElSelect>
+        <ElSelect
+          v-model="filters.priority"
+          placeholder="全部优先级"
+          clearable
+          class="task-select"
+          @change="resetPage"
+        >
+          <ElOption v-for="(label, i) in priorities" :key="i" :label="label" :value="i" />
+        </ElSelect>
+        <ElButton :loading="loading" @click="resetPage">查询</ElButton>
+      </div>
     </ElCard>
 
-    <ArgusDialog
-      v-model="dialogVisible.visible"
-      :title="dialogVisible.title"
-      dialog-class="crud-embed-dialog"
-      modal-class="crud-embed-dialog"
-      :form-mode="dialogVisible.type"
-      :confirm-loading="submitLoading"
-      @cancel="handleCloseDialog"
-      @close="handleCloseDialog"
-      @confirm="handleDialogConfirm"
-      size="xl"
+    <div class="task-list-caption">
+      共 {{ total }} 项任务<span>仅显示你有权限访问的团队任务</span>
+    </div>
+    <ArgusCardGrid
+      :items="tasks"
+      :loading="loading"
+      :pagination="{ current: pageNo, size: pageSize, total }"
+      :lg="8"
+      :xl="8"
+      :md="12"
+      :sm="12"
+      header-class="task-card-header"
+      @pagination:current-change="changePage"
+      @pagination:size-change="changeSize"
     >
-      <template v-if="dialogVisible.type === 'detail'">
-        <div>
-          <ArgusDescriptions
-            :column="4"
-            :data="detailFormData"
-            :items="ticketDetailItems"
-            label-width="120px"
+      <template #empty>
+        <ArgusEmptyState
+          icon="ri:task-line"
+          title="暂无任务"
+          description="创建一项任务，明确目标、负责人和交付时间。"
+        />
+      </template>
+      <template #header="{ item }">
+        <button type="button" class="task-title" @click="openDetail(item.id!)">
+          {{ item.title }}
+        </button>
+        <ElTag :type="statusType(item.status)" size="small">{{ statuses[item.status ?? 0] }}</ElTag>
+      </template>
+      <template #default="{ item }">
+        <div class="task-summary">
+          {{ plainText(item.ticket_content || item.summary || "") || "暂无详细描述" }}
+        </div>
+        <div class="task-meta">
+          <span>负责人</span><strong>{{ item.assigned_by?.name || "待分配" }}</strong>
+        </div>
+        <div class="task-meta">
+          <span>截止日期</span
+          ><strong :class="{ overdue: isOverdue(item) }"
+            >{{ item.due_date || "未设置" }}{{ isOverdue(item) ? " · 已逾期" : "" }}</strong
           >
-            <template #ticket_type="{ row }">
-              <ArgusStatusTag
-                :type="typeTag(row?.ticket_type as string)"
-                :label="typeLabel(row?.ticket_type as string)"
-              />
-            </template>
-            <template #status="{ row }">
-              <ArgusStatusTag
-                :type="statusTagType(String(row?.status ?? 0))"
-                :label="statusLabel(Number(row?.status ?? 0))"
-              />
-            </template>
-            <template #ticket_content>
-              <div
-                class="box-border min-h-30 bg-(--el-bg-color) border border-(--el-border-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)] p-3"
-              >
-                <template v-if="detailHasRenderableContent">
-                  <div v-html="detailContentHtml" />
-                </template>
-                <p v-else class="m-0 text-sm text-(--el-text-color-placeholder)">暂无内容</p>
-              </div>
-            </template>
-            <template #reply_content>
-              <div
-                v-if="detailFormData.reply"
-                class="box-border min-h-30 bg-(--el-bg-color) border border-(--el-border-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)] p-3"
-              >
-                <div v-html="sanitizedReply" />
-              </div>
-              <p v-else class="m-0 text-sm text-(--el-text-color-placeholder)">暂无回复</p>
-            </template>
-          </ArgusDescriptions>
-
-          <!-- ── 评论区 ── -->
-          <ElDivider content-position="left">
-            <span
-              class="inline-flex items-center text-sm font-semibold text-(--el-text-color-primary)"
-            >
-              <ArgusSvgIcon icon="ri:chat-3-line" class="mr-1.5" />
-              评论（{{ commentsTotal }}）
-            </span>
-          </ElDivider>
-          <div class="flex flex-col gap-3">
-            <div class="px-1">
-              <div v-if="commentsLoading" class="py-3">
-                <ElSkeleton :rows="2" animated />
-              </div>
-              <template v-else-if="comments.length">
-                <div
-                  v-for="c in comments"
-                  :key="c.id"
-                  class="flex gap-3 py-3 border-b border-(--el-border-color-lighter) last:border-b-0"
-                >
-                  <div
-                    class="flex shrink-0 items-center justify-center w-8 h-8 text-base text-(--el-color-primary) bg-(--el-color-primary-light-9) rounded-full"
-                  >
-                    <ArgusSvgIcon icon="ri:user-6-fill" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex gap-2 items-center mb-1.5">
-                      <span class="text-sm font-semibold text-(--el-text-color-primary)">{{
-                        c.created_by_name || c.created_by?.name || "匿名"
-                      }}</span>
-                      <span class="text-xs text-(--el-text-color-placeholder)">{{
-                        formatDateTime(c.created_time)
-                      }}</span>
-                    </div>
-                    <div
-                      class="text-sm leading-relaxed text-(--el-text-color-regular) wrap-break-word"
-                      v-html="sanitizeComment(c.content)"
-                    />
-                  </div>
-                </div>
-              </template>
-              <ArgusEmptyState v-else icon="ri:chat-3-line" title="暂无评论" compact />
-            </div>
-
-            <!-- 提交评论 -->
-            <div
-              class="flex gap-3 items-start pt-2 border-t border-(--el-border-color-lighter) [&_.el-textarea]:flex-1 [&_.el-button]:shrink-0 [&_.el-button]:mt-0.5"
-            >
-              <ElInput
-                v-model="commentInput"
-                type="textarea"
-                :rows="2"
-                placeholder="输入评论内容..."
-                :disabled="commentSubmitting"
-                resize="none"
-                aria-label="输入评论内容..."
-              />
-              <ElButton
-                type="primary"
-                :loading="commentSubmitting"
-                :disabled="!commentInput.trim()"
-                @click="handleSubmitComment"
-              >
-                发表评论
-              </ElButton>
-            </div>
-          </div>
+        </div>
+        <div class="task-meta">
+          <span>优先级</span
+          ><ElTag :type="priorityType(item.priority)" size="small" effect="plain">{{
+            priorities[item.priority ?? 1]
+          }}</ElTag>
+        </div>
+        <div class="task-meta">
+          <span>创建人</span><span>{{ item.created_by?.name || "—" }}</span>
         </div>
       </template>
-      <template v-else>
-        <ArgusForm
-          v-if="dialogVisible.type === 'create'"
-          :key="ticketFormRenderKey"
-          scrollbar
-          max-height="70vh"
-          ref="dataFormRef"
-          v-model="formData"
-          :items="ticketDialogFormItems"
-          :rules="rules"
-          label-suffix=":"
-          :label-width="96"
-          label-position="right"
-          :span="24"
-          :gutter="16"
-          :show-reset="false"
-          :show-submit="false"
-          class="crud-dialog-art-form"
+      <template #footer="{ item }">
+        <div class="task-actions">
+          <ElButton size="small" @click="openDetail(item.id!)">详情</ElButton>
+          <ElButton
+            v-if="canEdit(item)"
+            v-hasPerm="['module_system:ticket:update']"
+            size="small"
+            type="primary"
+            plain
+            @click="openEditor(item.id!)"
+            >编辑</ElButton
+          >
+          <ElButton
+            v-if="canEdit(item) && item.status === 0"
+            v-hasPerm="['module_system:ticket:update']"
+            size="small"
+            type="primary"
+            @click="changeStatus(item, 1)"
+            >开始</ElButton
+          >
+          <ElButton
+            v-if="canEdit(item) && item.status === 1"
+            v-hasPerm="['module_system:ticket:update']"
+            size="small"
+            type="success"
+            @click="changeStatus(item, 2)"
+            >完成</ElButton
+          >
+        </div>
+      </template>
+    </ArgusCardGrid>
+
+    <ElDialog
+      v-model="editorVisible"
+      :title="editingId ? '编辑任务' : '新建任务'"
+      width="min(880px, 94vw)"
+      destroy-on-close
+      :close-on-click-modal="false"
+    >
+      <ElForm ref="formRef" :model="form" :rules="rules" label-position="top">
+        <ElFormItem label="任务标题" prop="title"
+          ><ElInput
+            v-model="form.title"
+            maxlength="200"
+            show-word-limit
+            placeholder="例如：完成本周客户资料归档"
+        /></ElFormItem>
+        <div class="task-form-grid">
+          <ElFormItem label="负责人"
+            ><ElSelect
+              v-model="form.assigned_id"
+              filterable
+              clearable
+              placeholder="选择负责这项工作的同事"
+              :disabled="!canAssign"
+              class="w-full"
+              ><ElOption
+                v-for="user in assignees"
+                :key="user.id"
+                :value="user.id"
+                :label="`${user.name || user.username} · ${user.username}`" /></ElSelect
+          ></ElFormItem>
+          <ElFormItem label="截止日期"
+            ><ElDatePicker
+              v-model="form.due_date"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="选择交付日期"
+              class="w-full"
+          /></ElFormItem>
+          <ElFormItem label="优先级"
+            ><ElSelect v-model="form.priority" class="w-full"
+              ><ElOption
+                v-for="(label, i) in priorities"
+                :key="i"
+                :label="label"
+                :value="i" /></ElSelect
+          ></ElFormItem>
+          <ElFormItem label="任务类别"
+            ><ElSelect v-model="form.ticket_type" class="w-full"
+              ><ElOption
+                v-for="option in categories"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value" /></ElSelect
+          ></ElFormItem>
+        </div>
+        <ElFormItem label="任务描述"
+          ><ArgusWangEditor
+            v-model="form.ticket_content"
+            height="240px"
+            placeholder="描述工作目标、交付内容和验收要求，可插入图片。"
+        /></ElFormItem>
+        <ElFormItem label="任务附件"
+          ><ArgusFileUpload v-model="attachment" tip="可上传一份参考文件，最大 20 MB。"
+        /></ElFormItem>
+      </ElForm>
+      <template #footer
+        ><ElButton @click="editorVisible = false">取消</ElButton
+        ><ElButton type="primary" :loading="saving" @click="saveTask">保存任务</ElButton></template
+      >
+    </ElDialog>
+
+    <ElDialog v-model="detailVisible" title="任务详情" width="min(880px, 94vw)" destroy-on-close>
+      <template v-if="detail">
+        <h3 class="mb-4 text-lg font-semibold">{{ detail.title }}</h3>
+        <ElDescriptions :column="2" border>
+          <ElDescriptionsItem label="状态"
+            ><ElTag :type="statusType(detail.status)">{{
+              statuses[detail.status ?? 0]
+            }}</ElTag></ElDescriptionsItem
+          >
+          <ElDescriptionsItem label="优先级">{{
+            priorities[detail.priority ?? 1]
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="负责人">{{
+            detail.assigned_by?.name || "待分配"
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="截止日期"
+            ><span :class="{ overdue: isOverdue(detail) }">{{
+              detail.due_date || "未设置"
+            }}</span></ElDescriptionsItem
+          >
+          <ElDescriptionsItem label="创建人">{{
+            detail.created_by?.name || "—"
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="类别">{{
+            categories.find((c) => c.value === detail?.ticket_type)?.label || "其他"
+          }}</ElDescriptionsItem>
+        </ElDescriptions>
+        <div
+          class="task-content"
+          v-html="DOMPurify.sanitize(detail.ticket_content || '<p>暂无详细描述</p>')"
+        ></div>
+        <ElLink
+          v-if="detail.attachment_url"
+          :href="detail.attachment_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          type="primary"
+          >查看任务附件</ElLink
         >
-          <template #ticket_type>
-            <ElSelect v-model="formData.ticket_type" placeholder="请选择工单类型">
-              <ElOption label="💡 建议" value="suggestion" />
-              <ElOption label="🐛 缺陷" value="bug" />
-              <ElOption label="⚡ 优化" value="optimize" />
-              <ElOption label="📋 其他" value="other" />
-            </ElSelect>
-          </template>
-          <template #status>
-            <ElRadioGroup v-model="formData.status">
-              <ElRadio :value="0">待处理</ElRadio>
-              <ElRadio :value="1">处理中</ElRadio>
-              <ElRadio :value="2">已完成</ElRadio>
-              <ElRadio :value="3">已关闭</ElRadio>
-            </ElRadioGroup>
-          </template>
-          <template #assigned_id>
-            <ArgusUserTableSelect
-              :model-value="formData.assigned_id == null ? undefined : formData.assigned_id"
-              @update:model-value="
-                (v: number | undefined) => (formData.assigned_id = v ?? undefined)
-              "
-            />
-          </template>
-          <template #ticket_content>
-            <ArgusWangEditor
-              :model-value="formData.ticket_content ?? ''"
-              height="min(18vh, 280px)"
-              placeholder="请详细描述您的问题、建议或优化想法..."
-              :exclude-keys="[]"
-              @update:model-value="(v: string) => (formData.ticket_content = v)"
-            />
-          </template>
-        </ArgusForm>
-
-        <!-- 处理工单：展示工单信息 + 回复处理 -->
-        <div v-else class="flex flex-col">
-          <!-- 工单信息区 -->
-          <div class="flex flex-col gap-3 py-1">
-            <div class="flex gap-2.5 items-center">
-              <ElTag :type="typeTag(formData.ticket_type!)" size="small" effect="plain">
-                {{ typeLabel(formData.ticket_type!) }}
-              </ElTag>
-              <span class="text-base font-semibold text-(--el-text-color-primary)">{{
-                formData.title
-              }}</span>
+        <ElDivider content-position="left">任务进展 · {{ commentsTotal }} 条评论</ElDivider>
+        <div v-loading="commentsLoading">
+          <div v-for="comment in comments" :key="comment.id" class="task-comment">
+            <div>
+              <strong>{{
+                comment.created_by?.name || comment.created_by_name || "团队成员"
+              }}</strong
+              ><time>{{ comment.created_time }}</time>
             </div>
-            <ArgusMarkdownRenderer
-              :content="formData.ticket_content ?? ''"
-              class="min-h-30 p-3 bg-(--el-fill-color-lighter) rounded-[calc(var(--custom-radius)/3+2px)]"
-            />
+            <p class="whitespace-pre-wrap">{{ plainText(comment.content) }}</p>
           </div>
-
-          <ElDivider />
-
-          <!-- 处理区 -->
-          <div class="flex flex-col gap-5 py-1">
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-(--el-text-color-primary)">状态</label>
-              <ElRadioGroup v-model="formData.status">
-                <ElRadio :value="0">待处理</ElRadio>
-                <ElRadio :value="1">处理中</ElRadio>
-                <ElRadio :value="2">已完成</ElRadio>
-                <ElRadio :value="3">已关闭</ElRadio>
-              </ElRadioGroup>
-            </div>
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-(--el-text-color-primary)">回复内容</label>
-              <ArgusWangEditor
-                :model-value="formData.reply_content ?? ''"
-                height="min(18vh, 280px)"
-                placeholder="请输入回复内容..."
-                :exclude-keys="[]"
-                @update:model-value="(v: string) => (formData.reply_content = v)"
-              />
-            </div>
-          </div>
+          <p v-if="!comments.length" class="task-muted">暂无评论，补充进展或需要协助的事项。</p>
+          <ElButton
+            v-if="comments.length < commentsTotal"
+            text
+            :loading="commentsLoading"
+            @click="loadComments(true)"
+            >加载更多评论</ElButton
+          >
+        </div>
+        <ElInput
+          v-model="commentText"
+          type="textarea"
+          :rows="3"
+          maxlength="5000"
+          show-word-limit
+          placeholder="同步任务进展，或与同事讨论交付细节…"
+          class="mt-4"
+        />
+        <div class="mt-3 flex justify-end">
+          <ElButton
+            type="primary"
+            :loading="commentSaving"
+            :disabled="!commentText.trim()"
+            @click="sendComment"
+            >发表评论</ElButton
+          >
         </div>
       </template>
-    </ArgusDialog>
+      <template #footer>
+        <template v-if="detail && canEdit(detail)">
+          <ElButton
+            v-if="detail.status === 1"
+            v-hasPerm="['module_system:ticket:update']"
+            @click="changeStatus(detail, 0)"
+            >移回待开始</ElButton
+          >
+          <ElButton
+            v-if="detail.status === 2"
+            v-hasPerm="['module_system:ticket:update']"
+            @click="changeStatus(detail, 1)"
+            >重新跟进</ElButton
+          >
+          <ElButton
+            v-if="detail.status === 3 && canManage(detail)"
+            v-hasPerm="['module_system:ticket:update']"
+            @click="changeStatus(detail, 0)"
+            >重新打开</ElButton
+          >
+          <ElButton
+            v-if="detail.status !== 3 && canManage(detail)"
+            v-hasPerm="['module_system:ticket:update']"
+            type="warning"
+            plain
+            @click="changeStatus(detail, 3)"
+            >取消任务</ElButton
+          >
+          <ElButton
+            v-if="canManage(detail)"
+            v-hasPerm="['module_system:ticket:delete']"
+            type="danger"
+            plain
+            @click="removeTask(detail)"
+            >删除任务</ElButton
+          >
+        </template>
+        <ElButton @click="detailVisible = false">关闭</ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatDateTime, formatToDate } from "@utils";
-import { useCrudForm } from "@/hooks/core/useCrudForm";
+import { computed, onMounted, reactive, ref } from "vue";
+import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
+import DOMPurify from "dompurify";
+import { useUserStore } from "@stores";
 import TicketAPI, {
   getTicketComments,
   createTicketComment,
-  type TicketForm,
-  type TicketPageQuery,
   type TicketTable,
+  type TicketUpdateForm,
+  type TicketCreateForm,
   type TicketCommentTable,
 } from "@/api/module_system/ticket";
-import type { ColumnOption } from "@/types/component";
-import type { SearchFormItem } from "@/components/forms/argus-search-bar/index.vue";
-import type { FormItem } from "@/components/forms/argus-form/index.vue";
-import {
-  ElTag,
-  ElButton,
-  ElCard,
-  ElRow,
-  ElCol,
-  ElSelect,
-  ElOption,
-  ElRadioGroup,
-  ElRadio,
-  ElDivider,
-  ElInput,
-  ElMessageBox,
-} from "element-plus";
-import DOMPurify from "dompurify";
-import ArgusForm from "@/components/forms/argus-form/index.vue";
-import ArgusTableHeader from "@/components/tables/argus-table-header/index.vue";
-import ArgusDescriptions from "@/components/display/argus-descriptions/index.vue";
 import ArgusCardGrid from "@/components/cards/argus-card-grid/index.vue";
+import ArgusWangEditor from "@/components/forms/argus-wang-editor/index.vue";
+import ArgusFileUpload from "@/components/forms/argus-file-upload/index.vue";
 
-defineOptions({
-  // 与菜单 route_name 一致：KeepAlive 的 include/exclude 按组件 name 匹配
-  name: "ModuleTicket",
-  inheritAttrs: false,
-});
-
-// ─── 搜索表单 ───
-type TicketSearchForm = {
-  title?: string;
-  ticket_type?: string;
-  status?: number;
-  created_id?: number;
-  updated_id?: number;
-  assigned_id?: number;
-};
-
-const searchForm = ref<TicketSearchForm>({
-  title: "",
-  ticket_type: "",
-  status: undefined,
-  created_id: undefined,
-  updated_id: undefined,
-  assigned_id: undefined,
-});
-const showSearchBar = ref(true);
-
-const STATUS_OPTIONS = [
-  { label: "待处理", value: 0 },
-  { label: "处理中", value: 1 },
-  { label: "已完成", value: 2 },
-  { label: "已关闭", value: 3 },
-] as const;
-
-const TICKET_TYPE_OPTIONS = [
-  { label: "💡 建议", value: "suggestion" },
-  { label: "🐛 缺陷", value: "bug" },
-  { label: "⚡ 优化", value: "optimize" },
-  { label: "📋 其他", value: "other" },
-] as const;
-
-const ticketSearchItems = computed<SearchFormItem[]>(() => [
-  {
-    label: "工单标题",
-    key: "title",
-    type: "input",
-    placeholder: "请输入工单标题",
-    clearable: true,
-    span: 6,
-  },
-  {
-    label: "工单类型",
-    key: "ticket_type",
-    type: "select",
-    props: {
-      placeholder: "请选择类型",
-      options: TICKET_TYPE_OPTIONS,
-      clearable: true,
-    },
-    span: 6,
-  },
-  {
-    label: "状态",
-    key: "status",
-    type: "select",
-    props: {
-      placeholder: "请选择状态",
-      options: STATUS_OPTIONS,
-      clearable: true,
-    },
-    span: 6,
-  },
-  {
-    label: "处理人",
-    key: "assigned_id",
-    type: "input",
-    span: 6,
-  },
-]);
-
-// ─── 数据管理 ───
-const data = ref<TicketTable[]>([]);
-const loading = ref(false);
+defineOptions({ name: "ModuleTicket" });
+const userStore = useUserStore();
+const statuses = ["待开始", "进行中", "已完成", "已取消"];
+const priorities = ["低", "普通", "高", "紧急"];
+const categories = [
+  { label: "工作事项", value: "suggestion" },
+  { label: "缺陷修复", value: "bug" },
+  { label: "改进优化", value: "optimize" },
+  { label: "其他", value: "other" },
+];
+const tasks = ref<TicketTable[]>([]);
+const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(12);
-const total = ref(0);
-
-function normalizeTicketQuery(params: Record<string, unknown>): TicketPageQuery {
-  const r: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") {
-      r[k] = v;
-    }
-  }
-  return r as unknown as TicketPageQuery;
+const loading = ref(false);
+const view = ref<"all" | "assigned" | "created">("all");
+const filters = reactive<{ title: string; status?: number | ""; priority?: number | "" }>({
+  title: "",
+});
+let listRequest = 0;
+function canManage(task: TicketTable) {
+  return (
+    !!userStore.info.is_superuser || (!!userStore.info.id && task.created_id === userStore.info.id)
+  );
 }
-
-async function fetchData() {
+function canEdit(task: TicketTable) {
+  return canManage(task) || (!!userStore.info.id && task.assigned_id === userStore.info.id);
+}
+function statusType(status?: number) {
+  return (["info", "primary", "success", "warning"] as const)[status ?? 0];
+}
+function priorityType(priority?: number) {
+  return (["info", "info", "warning", "danger"] as const)[priority ?? 1];
+}
+function plainText(html: string) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return doc.body.textContent?.trim() || "";
+}
+function isOverdue(task: TicketTable) {
+  const today = new Date();
+  const local = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  return !!task.due_date && task.due_date < local && (task.status ?? 0) < 2;
+}
+async function fetchTasks() {
+  const requestId = ++listRequest;
   loading.value = true;
   try {
     const res = await TicketAPI.listTicket({
-      ...normalizeTicketQuery(searchForm.value as unknown as Record<string, unknown>),
       page_no: pageNo.value,
       page_size: pageSize.value,
+      view: view.value,
+      title: filters.title || undefined,
+      status: filters.status === "" ? undefined : filters.status,
+      priority: filters.priority === "" ? undefined : filters.priority,
     });
-    const result = res.data?.data;
-    data.value = (result?.items as TicketTable[]) || [];
-    total.value = result?.total || 0;
-  } catch {
-    // ignore
+    if (requestId !== listRequest) return;
+    tasks.value = res.data.data.items || [];
+    total.value = res.data.data.total || 0;
   } finally {
-    loading.value = false;
+    if (requestId === listRequest) loading.value = false;
   }
 }
-
-function onPageSizeChange(size: number) {
-  pageSize.value = size;
+function resetPage() {
   pageNo.value = 1;
-  fetchData();
+  void fetchTasks();
 }
-
-function onPageCurrentChange(page: number) {
+function changePage(page: number) {
   pageNo.value = page;
-  fetchData();
+  void fetchTasks();
 }
-
-const columnChecks = ref<ColumnOption[]>([]);
-
-async function handleSearchBarSearch(params: Record<string, unknown>) {
-  searchForm.value = {
-    title: (params.title as string) ?? "",
-    ticket_type: (params.ticket_type as string) ?? "",
-    status: params.status !== undefined ? Number(params.status) : undefined,
-    created_id: params.created_id as number | undefined,
-    updated_id: params.updated_id as number | undefined,
-    assigned_id: params.assigned_id as number | undefined,
-  };
-  pageNo.value = 1;
-  await fetchData();
+function changeSize(size: number) {
+  pageSize.value = size;
+  resetPage();
 }
-
-async function onResetSearch() {
-  searchForm.value = {
-    title: "",
-    ticket_type: "",
-    status: undefined,
-    created_id: undefined,
-    updated_id: undefined,
-    assigned_id: undefined,
-  };
-  pageNo.value = 1;
-  await fetchData();
-}
-
-// ─── 类型/状态辅助 ───
-const TYPE_ICONS: Record<string, string> = {
-  suggestion: "ri:lightbulb-line",
-  bug: "ri:bug-line",
-  optimize: "ri:rocket-line",
-  other: "ri:file-list-3-line",
-};
-
-const TYPE_ICON_CLASSES: Record<string, string> = {
-  suggestion: "text-(--el-color-warning) bg-(--el-color-warning-light-9)",
-  bug: "text-(--el-color-danger) bg-(--el-color-danger-light-9)",
-  optimize: "text-(--el-color-success) bg-(--el-color-success-light-9)",
-  other: "text-(--el-color-info) bg-(--el-color-info-light-9)",
-};
-
-function typeIcon(t: string) {
-  return TYPE_ICONS[t] || TYPE_ICONS.other;
-}
-
-function typeIconClass(t: string) {
-  return TYPE_ICON_CLASSES[t] || TYPE_ICON_CLASSES.other;
-}
-
-const TYPE_MAP: Record<string, string> = {
-  suggestion: "建议",
-  bug: "缺陷",
-  optimize: "优化",
-  other: "其他",
-};
-
-const STATUS_MAP: Record<number, string> = {
-  0: "待处理",
-  1: "处理中",
-  2: "已完成",
-  3: "已关闭",
-};
-
-function typeLabel(t: string) {
-  return TYPE_MAP[t] || t || "其他";
-}
-function statusLabel(s: number) {
-  return STATUS_MAP[s] || String(s);
-}
-function typeTag(t: string): any {
-  return { suggestion: "success", bug: "danger", optimize: "warning", other: "info" }[t] || "info";
-}
-function statusTagType(
-  s: string
-): "primary" | "warning" | "info" | "success" | "danger" | undefined {
-  const map: Record<number, "primary" | "warning" | "info" | "success" | "danger"> = {
-    0: "warning",
-    1: "primary",
-    2: "success",
-    3: "info",
-  };
-  return map[Number(s)];
-}
-
-// ─── 多选 ───
-const selectedIds = ref<number[]>([]);
-const batchDeleting = ref(false);
-
-// ─── 对话框 ───
-const { dialogVisible } = useCrudDialog();
-
-const detailFormData = ref<TicketTable & { reply_content?: string }>(
-  {} as TicketTable & { reply_content?: string }
-);
-
-const ticketDetailItems: import("@/components/display/argus-descriptions/index.vue").DescriptionsItem[] =
-  [
-    { label: "工单标题", prop: "title", span: 4 },
-    { label: "工单类型", prop: "ticket_type", slot: "ticket_type" },
-    { label: "状态", prop: "status", slot: "status" },
-    { label: "处理人", prop: "assigned_by.name" },
-    { label: "描述", prop: "description", span: 4 },
-    { label: "详细内容", prop: "ticket_content", slot: "ticket_content", span: 4 },
-    { label: "回复内容", prop: "reply", slot: "reply_content", span: 4 },
-    { label: "创建人", prop: "created_by.name" },
-    { label: "更新人", prop: "updated_by.name" },
-    { label: "创建时间", prop: "created_time" },
-    { label: "更新时间", prop: "updated_time" },
-  ];
-
-const detailContentHtml = computed({
-  get: () => DOMPurify.sanitize(detailFormData.value.ticket_content ?? ""),
-  set: (v: string) => {
-    detailFormData.value.ticket_content = v;
-  },
-});
-
-const sanitizedReply = computed(() => {
-  const raw = detailFormData.value.reply ?? "";
-  return raw ? DOMPurify.sanitize(raw) : "";
-});
-
-const detailHasRenderableContent = computed(() => {
-  const raw = detailFormData.value.ticket_content ?? "";
-  if (!raw.trim()) return false;
-  const plain = raw
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return plain.length > 0;
-});
-
-const formData = ref<TicketForm & { reply_content?: string }>({
-  id: undefined,
+const assignees = ref<{ id: number; name: string; username: string }[]>([]);
+const editorVisible = ref(false);
+const editingId = ref<number>();
+const editingTask = ref<TicketTable>();
+const canAssign = computed(() => !editingTask.value || canManage(editingTask.value));
+const saving = ref(false);
+const formRef = ref<FormInstance>();
+const emptyForm = () => ({
   title: "",
-  ticket_type: "suggestion",
   ticket_content: "",
-  status: 0,
-  description: undefined,
-  assigned_id: undefined,
-  reply_content: undefined,
-});
-
-const rules = reactive({
-  title: [{ required: true, message: "请输入工单标题", trigger: "blur" }],
-  ticket_type: [{ required: true, message: "请选择工单类型", trigger: "blur" }],
-  ticket_content: [{ required: true, message: "请输入工单内容", trigger: "blur" }],
-  status: [{ required: true, message: "请选择状态", trigger: "blur" }],
-});
-
-const dataFormRef = ref<InstanceType<typeof ArgusForm> | null>(null);
-const ticketFormRenderKey = ref(0);
-
-const initialFormData: TicketForm & { reply_content?: string } = {
-  id: undefined,
-  title: "",
   ticket_type: "suggestion",
-  ticket_content: "",
-  status: 0,
-  description: undefined,
-  assigned_id: undefined,
-  reply_content: undefined,
+  priority: 1,
+  due_date: null as string | null,
+  assigned_id: null as number | null,
+  attachment_url: null as string | null,
+});
+const form = reactive(emptyForm());
+const attachment = computed({
+  get: () => form.attachment_url || "",
+  set: (url: string) => {
+    form.attachment_url = url || null;
+  },
+});
+const rules = {
+  title: [{ required: true, whitespace: true, message: "请输入任务标题", trigger: "blur" }],
 };
-
-const {
-  submitLoading,
-  handleCloseDialog,
-  handleOpenDialog,
-  handleSubmit: crudHandleSubmit,
-} = useCrudForm<TicketForm & { reply_content?: string }>({
-  formData,
-  initialFormData,
-  dialogVisible,
-  dataFormRef,
-  formRenderKey: ticketFormRenderKey,
-  detailApi: TicketAPI.detailTicket,
-  createApi: TicketAPI.createTicket,
-  updateApi: TicketAPI.updateTicket,
-  titles: { create: "提交工单", update: "处理工单", detail: "工单详情" },
-  detailFormData,
-  onCreateSuccess: async () => {
-    await fetchData();
-  },
-  onUpdateSuccess: async () => {
-    await fetchData();
-  },
-  onSubmitSuccess: async () => {
-    await fetchData();
-  },
-});
-
-/** 对话框确认：创建走 crudHandleSubmit（含表单校验），处理直接调 API */
-async function handleDialogConfirm() {
-  if (dialogVisible.type === "create") {
-    await crudHandleSubmit();
-    return;
-  }
-  if (dialogVisible.type !== "update") {
-    handleCloseDialog();
-    return;
-  }
-  const id = formData.value.id;
-  if (!id) return;
-  submitLoading.value = true;
-  try {
-    const payload: Record<string, unknown> = {};
-    if (formData.value.status !== undefined) payload.status = formData.value.status;
-    if (formData.value.reply_content?.trim()) {
-      payload.reply_content = formData.value.reply_content.trim();
-    }
-    await TicketAPI.updateTicket(id, payload);
-    await fetchData();
-    handleCloseDialog();
-  } catch {
-    // 接口错误由全局拦截器处理
-  } finally {
-    submitLoading.value = false;
-  }
-}
-
-const ticketDialogFormItems = computed<FormItem[]>(() => [
-  {
-    label: "工单标题",
-    key: "title",
-    type: "input",
-    span: 24,
-    props: { placeholder: "请输入工单标题", maxlength: 200 },
-  },
-  {
-    label: "工单类型",
-    key: "ticket_type",
-    type: "select",
-    span: 12,
-    props: { placeholder: "请选择类型", clearable: true },
-  },
-  {
-    label: "处理人",
-    key: "assigned_id",
-    type: "input",
-    span: 12,
-    placeholder: "",
-  },
-  { key: "status", label: "状态", type: "radiogroup", span: 24 },
-  {
-    label: "详细描述",
-    key: "ticket_content",
-    type: "input",
-    span: 24,
-    placeholder: "",
-  },
-]);
-
-// ─── 操作 ───
-async function deleteTicketRow(id: number, name: string) {
-  try {
-    await confirmDelete(`确定删除「${name}」吗？`);
-    await TicketAPI.deleteTicket([id]);
-    await fetchData();
-  } catch {
-    // 用户取消
-  }
-}
-
-async function closeTicket(id: number) {
-  try {
-    await ElMessageBox.confirm("确认关闭该工单?", "警告", {
-      confirmButtonText: "确定",
-      cancelButtonText: "取消",
-      type: "warning",
+async function openEditor(id?: number) {
+  editingId.value = id;
+  editingTask.value = undefined;
+  Object.assign(form, emptyForm());
+  if (id) {
+    const task = (await TicketAPI.detailTicket(id)).data.data;
+    editingTask.value = task;
+    Object.assign(form, {
+      title: task.title,
+      ticket_content: task.ticket_content || "",
+      ticket_type: task.ticket_type,
+      priority: task.priority ?? 1,
+      due_date: task.due_date || null,
+      assigned_id: task.assigned_id || null,
+      attachment_url: task.attachment_url || null,
     });
-    await TicketAPI.updateTicket(id, { status: 3 });
-    await fetchData();
-  } catch {
-    /* 用户取消或接口错误已由拦截器提示 */
   }
+  assignees.value = (await TicketAPI.assignees()).data.data;
+  editorVisible.value = true;
 }
-
-async function handleBatchDelete() {
-  const ids = selectedIds.value;
-  if (ids.length === 0) return;
+async function saveTask() {
+  if (!(await formRef.value?.validate().catch(() => false))) return;
+  saving.value = true;
   try {
-    await confirmBatchDelete(
-      ids.length,
-      data.value.filter((r) => ids.includes(r.id!)).map((r) => String(r.title ?? r.id))
-    );
-    batchDeleting.value = true;
-    selectedIds.value = [];
-    await TicketAPI.deleteTicket(ids);
-    await fetchData();
-  } catch {
-    // 用户取消
+    const payload = {
+      ...form,
+      assigned_id: form.assigned_id || null,
+      due_date: form.due_date || null,
+      summary: plainText(form.ticket_content).slice(0, 500),
+    };
+    if (editingId.value) {
+      const update: TicketUpdateForm = { ...payload };
+      if (!canAssign.value) delete update.assigned_id;
+      await TicketAPI.updateTicket(editingId.value, update);
+    } else {
+      await TicketAPI.createTicket(payload as TicketCreateForm);
+    }
+    editorVisible.value = false;
+    ElMessage.success("任务已保存");
+    await fetchTasks();
   } finally {
-    batchDeleting.value = false;
+    saving.value = false;
   }
 }
-
-onMounted(() => {
-  fetchData();
-});
-
-// ─── 评论 ───
+const detailVisible = ref(false);
+const detail = ref<TicketTable>();
 const comments = ref<TicketCommentTable[]>([]);
 const commentsTotal = ref(0);
 const commentsLoading = ref(false);
-const commentInput = ref("");
-const commentSubmitting = ref(false);
-
-// 打开详情时自动加载评论
-watch(
-  () => detailFormData.value.id,
-  (newId) => {
-    if (newId && dialogVisible.visible && dialogVisible.type === "detail") {
-      loadComments(newId);
-    }
-  }
-);
-
-async function loadComments(ticketId: number) {
+const commentText = ref("");
+const commentSaving = ref(false);
+let commentPage = 1;
+async function openDetail(id: number) {
+  detail.value = (await TicketAPI.detailTicket(id)).data.data;
+  comments.value = [];
+  commentsTotal.value = 0;
+  commentText.value = "";
+  detailVisible.value = true;
+  await loadComments();
+}
+async function loadComments(more = false) {
+  const id = detail.value?.id;
+  if (!id) return;
+  const page = more ? commentPage + 1 : 1;
   commentsLoading.value = true;
   try {
-    const res = await getTicketComments(ticketId, { page_no: 1, page_size: 50 });
-    const result = res.data?.data;
-    comments.value = (result?.items as TicketCommentTable[]) || [];
-    commentsTotal.value = result?.total || 0;
-  } catch {
-    // ignore
+    const result = (await getTicketComments(id, { page_no: page, page_size: 20 })).data.data;
+    if (detail.value?.id !== id) return;
+    comments.value = more ? [...comments.value, ...result.items] : result.items;
+    commentsTotal.value = result.total;
+    commentPage = page;
   } finally {
     commentsLoading.value = false;
   }
 }
-
-function sanitizeComment(html: string): string {
-  return DOMPurify.sanitize(html || "");
-}
-
-async function handleSubmitComment() {
-  const tid = detailFormData.value.id;
-  if (!tid || !commentInput.value.trim()) return;
-  commentSubmitting.value = true;
+async function sendComment() {
+  if (!detail.value?.id || !commentText.value.trim()) return;
+  commentSaving.value = true;
   try {
-    await createTicketComment(tid, { content: commentInput.value.trim() });
-    commentInput.value = "";
-    await loadComments(tid);
-  } catch {
-    // ignore
+    await createTicketComment(detail.value.id, { content: commentText.value.trim() });
+    commentText.value = "";
+    await loadComments();
   } finally {
-    commentSubmitting.value = false;
+    commentSaving.value = false;
   }
 }
+async function changeStatus(task: TicketTable, status: number) {
+  if (status === 3) {
+    try {
+      await ElMessageBox.confirm(
+        "取消后可由创建人或管理员重新打开，确认取消这项任务？",
+        "取消任务",
+        { type: "warning" }
+      );
+    } catch {
+      return;
+    }
+  }
+  await TicketAPI.updateTicket(task.id!, { status });
+  ElMessage.success("任务状态已更新");
+  if (detail.value?.id === task.id)
+    detail.value = (await TicketAPI.detailTicket(task.id!)).data.data;
+  await fetchTasks();
+}
+async function removeTask(task: TicketTable) {
+  try {
+    await ElMessageBox.confirm(`确认删除任务「${task.title}」？`, "删除任务", { type: "warning" });
+  } catch {
+    return;
+  }
+  await TicketAPI.deleteTicket([task.id!]);
+  detailVisible.value = false;
+  ElMessage.success("任务已删除");
+  await fetchTasks();
+}
+onMounted(fetchTasks);
 </script>
+
+<style scoped>
+.task-page {
+  padding: 4px;
+}
+.task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.task-header h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 650;
+}
+.task-header p,
+.task-muted {
+  color: var(--el-text-color-secondary);
+}
+.task-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.task-search {
+  width: 220px;
+}
+.task-select {
+  width: 140px;
+}
+.task-list-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--el-text-color-regular);
+  font-size: 13px;
+}
+.task-list-caption span {
+  color: var(--el-text-color-secondary);
+}
+.task-page :deep(.task-card-header) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.task-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.task-summary {
+  min-height: 42px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.task-meta > span:first-child {
+  color: var(--el-text-color-secondary);
+}
+.task-meta strong {
+  font-weight: 500;
+}
+.overdue {
+  color: var(--el-color-danger);
+}
+.task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.task-actions .el-button + .el-button {
+  margin-left: 0;
+}
+.task-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+.task-content {
+  margin: 20px 0;
+  overflow-wrap: anywhere;
+}
+.task-content :deep(img) {
+  max-width: 100%;
+}
+.task-comment {
+  margin: 12px 0;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--el-fill-color-light);
+}
+.task-comment > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.task-comment time {
+  color: var(--el-text-color-secondary);
+}
+.task-comment p {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+@media (width < 640px) {
+  .task-header {
+    align-items: flex-start;
+  }
+  .task-header p {
+    font-size: 12px;
+  }
+  .task-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .task-search {
+    width: 100%;
+  }
+  .task-list-caption span {
+    display: none;
+  }
+}
+</style>

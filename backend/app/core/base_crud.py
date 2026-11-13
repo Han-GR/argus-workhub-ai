@@ -332,9 +332,7 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
         if hasattr(self.model, "is_deleted") and not include_deleted:
             conditions.append(getattr(self.model, "is_deleted") == false())
 
-        from app.core.permission import Permission
-
-        permission_condition = await Permission(self.model, self.auth, self.db)._permission_condition()
+        permission_condition = await self._permission_condition()
         if permission_condition is not None:
             conditions.append(permission_condition)
 
@@ -347,6 +345,11 @@ class CRUDBase[ModelType: ModelMixin, CreateSchemaType, UpdateSchemaType]:
             else:
                 conditions.append(attr == value)
         return conditions
+
+    async def _permission_condition(self):
+        from app.core.permission import Permission
+
+        return await Permission(self.model, self.auth, self.db)._permission_condition()
 
     @staticmethod
     def _resolve_condition(attr: ColumnElement, value: tuple) -> list[ColumnElement]:

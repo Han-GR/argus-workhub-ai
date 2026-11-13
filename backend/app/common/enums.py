@@ -124,7 +124,7 @@ class InvoiceTypeEnum(str, Enum):
 
 @unique
 class TicketTypeEnum(str, Enum):
-    """工单类型"""
+    """内部任务类别"""
 
     SUGGESTION = "suggestion"
     BUG = "bug"

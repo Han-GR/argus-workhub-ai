@@ -222,6 +222,9 @@ export class RouteTransformer {
 
   /** 一级叶子 → 包 Layout，其下挂实际组件 */
   private handleFirstLevelLeaf(route: AppRouteRecord): Record<string, any> {
+    // 已注册在根 Layout 下时直接挂页面，避免重复 Layout 和路径前缀。
+    if (this.options.shellChild) return this.buildLeafRoute(route, 0)!;
+
     const firstSegment = this.pathFirstSegment(route.path);
     const fullMenuPath = route.path.startsWith("/") ? route.path : `/${route.path}`;
     return {

@@ -42,7 +42,7 @@
       <ol>
         <li><strong>01 / 归集资料</strong><span>在文件管理中上传、浏览和下载工作文件。</span></li>
         <li>
-          <strong>02 / 跟进事项</strong><span>提交协作工单，通过状态和评论记录处理过程。</span>
+          <strong>02 / 跟进事项</strong><span>明确负责人和交付时间，通过状态与评论跟进任务。</span>
         </li>
         <li>
           <strong>03 / 整理信息</strong><span>在智能对话中提问、整理文本，并查看历史会话。</span>
@@ -78,7 +78,7 @@ const tools = [
   },
   {
     title: "任务协同",
-    description: "提交协作工单，跟进处理状态，在评论中补充进展。",
+    description: "分配团队任务，设置优先级与截止日期，同步工作进展。",
     icon: "ri:task-line",
     route: "ModuleTicket",
     permission: "module_system:ticket:query",

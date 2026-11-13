@@ -3,6 +3,12 @@ import { request } from "@utils";
 const API_PATH = "/system/ticket";
 
 const TicketAPI = {
+  assignees() {
+    return request<ApiResponse<{ id: number; name: string; username: string }[]>>({
+      url: `${API_PATH}/assignees`,
+      method: "get",
+    });
+  },
   listTicket(query?: TicketPageQuery) {
     return request<ApiResponse<PageResult<TicketTable>>>({
       url: `${API_PATH}/list`,
@@ -54,26 +60,36 @@ export function createTicketComment(ticketId: number, data: TicketCommentCreateF
 export default TicketAPI;
 
 export interface TicketPageQuery extends PageQuery, UserByQueryParams {
+  view?: "all" | "assigned" | "created";
+  priority?: number;
   title?: string;
   ticket_type?: string;
-  assigned_id?: number;
+  assigned_id?: number | null;
   status?: number;
 }
 
 export interface TicketTable extends BaseType {
+  created_id?: number;
+  priority?: number;
+  due_date?: string | null;
+  attachment_url?: string | null;
   title: string;
   ticket_content?: string;
   summary?: string;
   ticket_type: string;
   images?: string;
   reply?: string;
-  assigned_id?: number;
+  assigned_id?: number | null;
   assigned_by?: CommonType;
   status?: number;
   description?: string;
 }
 
 export interface TicketCreateForm {
+  assigned_id?: number | null;
+  priority?: number;
+  due_date?: string | null;
+  attachment_url?: string | null;
   title: string;
   ticket_content?: string;
   summary?: string;
@@ -83,24 +99,30 @@ export interface TicketCreateForm {
 }
 
 export interface TicketUpdateForm {
+  priority?: number;
+  due_date?: string | null;
+  attachment_url?: string | null;
   title?: string;
   ticket_content?: string;
   summary?: string;
   ticket_type?: string;
   status?: number;
   reply?: string;
-  assigned_id?: number;
+  assigned_id?: number | null;
   description?: string;
 }
 
 export interface TicketForm extends BaseFormType {
+  priority?: number;
+  due_date?: string | null;
+  attachment_url?: string | null;
   title: string;
   ticket_content?: string;
   summary?: string;
   ticket_type: string;
   images?: string;
   reply?: string;
-  assigned_id?: number;
+  assigned_id?: number | null;
   status?: number;
   description?: string;
 }

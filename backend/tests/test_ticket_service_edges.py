@@ -35,16 +35,13 @@ async def test_ticket_update_none(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def test_ticket_update_assignee_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     svc = _svc()
-    class U:
-        def __init__(self, *a): pass
-        async def exists(self, **k): return False
-    monkeypatch.setattr("app.modules.system.ticket.service.UserCRUD", U)
+    monkeypatch.setattr(svc, "_validate_assignee", AsyncMock(side_effect=CustomException(msg="负责人不存在")))
     class C:
         def __init__(self, *a): pass
         async def get_or_404(self, **k): return SimpleNamespace(status=0, created_id=1, assigned_id=2)
     monkeypatch.setattr("app.modules.system.ticket.service.TicketCRUD", C)
     with pytest.raises(CustomException):
-        await svc.update(1, SimpleNamespace(status=None, assigned_id=99))
+        await svc.update(1, __import__("app.modules.system.ticket.schema", fromlist=["TicketUpdateSchema"]).TicketUpdateSchema(assigned_id=99))
 
 
 async def test_ticket_delete_empty() -> None:
