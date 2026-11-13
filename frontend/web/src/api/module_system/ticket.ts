@@ -69,6 +69,7 @@ export interface TicketPageQuery extends PageQuery, UserByQueryParams {
 }
 
 export interface TicketTable extends BaseType {
+  source_meeting_id?: string | null;
   created_id?: number;
   priority?: number;
   due_date?: string | null;

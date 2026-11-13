@@ -5,9 +5,12 @@
         <h2>任务协同</h2>
         <p>明确负责人和交付时间，一起推进团队工作。</p>
       </div>
-      <ElButton v-hasPerm="['module_system:ticket:create']" type="primary" @click="openEditor()">
-        <ArgusSvgIcon icon="ri:add-line" class="mr-1" />新建任务
-      </ElButton>
+      <div class="flex flex-wrap gap-2 justify-end">
+        <ArgusMeetingTasks v-if="canAiCreate" @created="fetchTasks" />
+        <ElButton v-hasPerm="['module_system:ticket:create']" type="primary" @click="openEditor()">
+          <ArgusSvgIcon icon="ri:add-line" class="mr-1" />新建任务
+        </ElButton>
+      </div>
     </header>
 
     <ElCard shadow="never" class="mb-4">
@@ -221,6 +224,9 @@
               detail.due_date || "未设置"
             }}</span></ElDescriptionsItem
           >
+          <ElDescriptionsItem label="来源">{{
+            detail.source_meeting_id ? "会议纪要" : "手动创建"
+          }}</ElDescriptionsItem>
           <ElDescriptionsItem label="创建人">{{
             detail.created_by?.name || "—"
           }}</ElDescriptionsItem>
@@ -336,12 +342,19 @@ import TicketAPI, {
   type TicketCreateForm,
   type TicketCommentTable,
 } from "@/api/module_system/ticket";
+import ArgusMeetingTasks from "./components/ArgusMeetingTasks.vue";
 import ArgusCardGrid from "@/components/cards/argus-card-grid/index.vue";
 import ArgusWangEditor from "@/components/forms/argus-wang-editor/index.vue";
 import ArgusFileUpload from "@/components/forms/argus-file-upload/index.vue";
 
 defineOptions({ name: "ModuleTicket" });
 const userStore = useUserStore();
+const canAiCreate = computed(
+  () =>
+    userStore.info.is_superuser ||
+    (userStore.prems.includes("module_system:ticket:create") &&
+      userStore.prems.includes("module_ai:chat:query"))
+);
 const statuses = ["待开始", "进行中", "已完成", "已取消"];
 const priorities = ["低", "普通", "高", "紧急"];
 const categories = [

@@ -91,3 +91,35 @@ class AgnoFactory:
         )
 
         return argus_team
+
+
+    async def complete_json(self, system: str, message: str, model_config: dict[str, Any] | None = None) -> str:
+        """无工具、无聊天历史的结构化业务提取，复用当前模型配置。"""
+        import httpx
+        from openai import AsyncOpenAI
+
+        config = model_config or {}
+        key = config.get("api_key") or settings.OPENAI_API_KEY
+        if not key:
+            raise RuntimeError("AI_MODEL_NOT_CONFIGURED")
+        from urllib.parse import urlsplit
+
+        base_url = config.get("base_url") or settings.OPENAI_BASE_URL
+        options: dict[str, Any] = {}
+        if urlsplit(base_url).hostname == "api.deepseek.com":
+            # DeepSeek V4 默认高强度思考；业务字段提取使用非思考 JSON 模式。
+            options = {"extra_body": {"thinking": {"type": "disabled"}}, "response_format": {"type": "json_object"}}
+        async with AsyncOpenAI(api_key=key, base_url=base_url, timeout=httpx.Timeout(90, connect=self.CONNECT_TIMEOUT), max_retries=0) as client:
+            response = await client.chat.completions.create(
+                model=config.get("model_id") or settings.OPENAI_MODEL,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": message}],
+                temperature=0,
+                max_tokens=10000,
+                **options,
+            )
+            if not response.choices or response.choices[0].finish_reason == "length":
+                raise ValueError("AI_OUTPUT_INCOMPLETE")
+            content = response.choices[0].message.content
+            if not content:
+                raise ValueError("AI_OUTPUT_EMPTY")
+            return content

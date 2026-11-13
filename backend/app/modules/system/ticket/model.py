@@ -1,7 +1,8 @@
+from uuid import uuid4
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.core.base_model import MappedBase, ModelMixin, UserMixin
@@ -16,7 +17,7 @@ class TicketModel(ModelMixin, UserMixin):
     """
 
     __tablename__: str = "sys_ticket"
-    __table_args__: dict[str, str] = {"comment": "任务表"}
+    __table_args__ = (Index("uq_task_meeting_item", "source_meeting_id", "source_item_index", unique=True), {"comment": "任务表"})
 
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True, comment="标题")
     status: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="状态(0:待开始 1:进行中 2:已完成 3:已取消)")
@@ -31,6 +32,9 @@ class TicketModel(ModelMixin, UserMixin):
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1", comment="优先级(0低/1普通/2高/3紧急)")
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True, comment="截止日期")
     attachment_url: Mapped[str | None] = mapped_column(Text, nullable=True, comment="任务附件地址")
+
+    source_meeting_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("sys_meeting_task_draft.id", name="fk_ticket_meeting_draft", ondelete="SET NULL"), nullable=True)
+    source_item_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     assigned_by: Mapped["UserModel | None"] = relationship("UserModel", foreign_keys=[assigned_id], uselist=False)
 
@@ -69,4 +73,20 @@ class TaskNotificationModel(MappedBase):
     dedup_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+
+
+class MeetingTaskDraftModel(MappedBase):
+    """仅所有者可访问的会议原文、草稿和确认回执。"""
+    __tablename__ = "sys_meeting_task_draft"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    owner_id: Mapped[int] = mapped_column(ForeignKey("sys_user.id", ondelete="CASCADE"), nullable=False)
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)
+    reference_date: Mapped[date] = mapped_column(Date, nullable=False)
+    drafts: Mapped[list] = mapped_column(JSON, nullable=False)
+    warnings: Mapped[list] = mapped_column(JSON, nullable=False)
+    confirmed_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    confirmed_tasks: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    created_task_ids: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

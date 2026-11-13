@@ -95,9 +95,12 @@ class TicketService:
         obj = await TicketCRUD(self.auth, self.db).get_or_404(id=id, preload=_TICKET_PRELOAD)
         return TicketOutSchema.model_validate(obj)
 
-    async def create(self, data: TicketCreateSchema) -> TicketOutSchema:
+    async def create(self, data: TicketCreateSchema, *, source_meeting_id: str | None = None, source_item_index: int | None = None) -> TicketOutSchema:
         await self._validate_assignee(getattr(data, "assigned_id", None))
-        obj = await TicketCRUD(self.auth, self.db).create(data=data)
+        values = data
+        if source_meeting_id is not None:
+            values = data.model_dump() | {"source_meeting_id": source_meeting_id, "source_item_index": source_item_index}
+        obj = await TicketCRUD(self.auth, self.db).create(data=values)
         if not obj:
             raise CustomException(msg="创建任务失败")
         if getattr(obj, "assigned_id", None):

@@ -141,3 +141,7 @@ async def ticket_comment_create_controller(
 from .notifications import NotificationRouter
 
 TicketRouter.include_router(NotificationRouter)
+
+from .meeting import MeetingRouter
+
+TicketRouter.include_router(MeetingRouter)

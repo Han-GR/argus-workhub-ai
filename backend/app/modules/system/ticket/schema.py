@@ -84,6 +84,7 @@ class TicketUpdateSchema(BaseModel):
 
 
 class TicketOutSchema(BaseSchema, UserBySchema):
+    source_meeting_id: str | None = None
     created_id: int | None = None
     """任务响应"""
 
