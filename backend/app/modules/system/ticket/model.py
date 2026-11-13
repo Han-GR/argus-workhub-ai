@@ -1,10 +1,10 @@
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
-from app.core.base_model import ModelMixin, UserMixin
+from app.core.base_model import MappedBase, ModelMixin, UserMixin
 
 if TYPE_CHECKING:
     from app.modules.system.user.model import UserModel
@@ -54,3 +54,19 @@ class TicketCommentModel(ModelMixin, UserMixin):
 
     ticket_id: Mapped[int] = mapped_column(ForeignKey("sys_ticket.id", ondelete="CASCADE"), nullable=False, index=True, comment="任务ID")
     content: Mapped[str] = mapped_column(Text, nullable=False, comment="评论内容（富文本）")
+
+
+class TaskNotificationModel(MappedBase):
+    """站内任务消息，读取范围由收件人与当前任务权限共同约束。"""
+    __tablename__ = "sys_task_notification"
+    __table_args__ = (Index("ix_task_notification_recipient_created", "recipient_id", "created_time"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    recipient_id: Mapped[int] = mapped_column(ForeignKey("sys_user.id", ondelete="CASCADE"), nullable=False)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey("sys_ticket.id", ondelete="CASCADE"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(30), nullable=False)
+    message: Mapped[str] = mapped_column(String(500), nullable=False)
+    dedup_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)

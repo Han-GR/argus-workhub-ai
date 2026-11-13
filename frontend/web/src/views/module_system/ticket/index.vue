@@ -323,9 +323,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
 import DOMPurify from "dompurify";
+import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@stores";
 import TicketAPI, {
   getTicketComments,
@@ -554,6 +555,23 @@ async function removeTask(task: TicketTable) {
   ElMessage.success("任务已删除");
   await fetchTasks();
 }
+const route = useRoute();
+const router = useRouter();
+watch(
+  () => [route.path, route.query.task_id] as const,
+  ([path, id]) => {
+    if (path === "/system/ticket" && typeof id === "string" && /^[1-9]\d*$/.test(id))
+      void openDetail(Number(id));
+  },
+  { immediate: true }
+);
+watch(detailVisible, (visible) => {
+  if (!visible && route.path === "/system/ticket" && route.query.task_id) {
+    const query = { ...route.query };
+    delete query.task_id;
+    void router.replace({ path: route.path, query });
+  }
+});
 onMounted(fetchTasks);
 </script>
 

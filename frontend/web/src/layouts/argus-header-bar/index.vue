@@ -167,6 +167,8 @@
           :aria-label="isDark ? '切换浅色主题' : '切换深色主题'"
         />
 
+        <ArgusTaskNotifications />
+
         <!-- 用户头像、菜单 -->
         <ArgusUserMenu />
       </div>
@@ -178,6 +180,7 @@
 </template>
 
 <script setup lang="ts">
+import ArgusTaskNotifications from "./widgets/ArgusTaskNotifications.vue";
 import { LanguageEnum, MenuTypeEnum } from "@/enums/appEnum";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";

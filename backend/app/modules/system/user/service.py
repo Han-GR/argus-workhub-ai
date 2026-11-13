@@ -245,13 +245,30 @@ class UserService:
             menu_ids = set(self.auth.menu_ids)
             if not menu_ids:
                 return []
-            return [
+            menus = [
                 MenuOutSchema.model_validate(menu)
                 for menu in await MenuCRUD(self.auth, self.db).get_list(
                     search={"id": ("in", list(menu_ids)), "status": 0, **_pc_only},
                     order_by=[{"order": "asc"}],
                 )
             ]
+            permissions = set(getattr(self.auth, "permissions", []))
+            for menu in menus:
+                if not self._can_show_management_menu(menu.route_name, permissions):
+                    menu.hidden = True
+            return menus
+
+    @staticmethod
+    def _can_show_management_menu(route_name: str | None, permissions: set[str]) -> bool:
+        required = {
+            "Params": {"module_system:param:update"},
+            "WorkflowNode": {
+                "module_task:storage:node:create",
+                "module_task:storage:node:update",
+                "module_task:storage:node:delete",
+            },
+        }
+        return route_name not in required or bool(required[route_name] & permissions)
 
     async def update_current_info(self, data: CurrentUserUpdateSchema) -> UserOutSchema:
         user_id = self.auth.user.id

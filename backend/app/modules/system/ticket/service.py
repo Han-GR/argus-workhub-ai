@@ -10,6 +10,7 @@ from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
 
 from .crud import TicketCommentCRUD, TicketCRUD
+from .notifications import notify_task
 from .schema import (
     TicketBatchSchema,
     TicketCommentCreateSchema,
@@ -99,6 +100,8 @@ class TicketService:
         obj = await TicketCRUD(self.auth, self.db).create(data=data)
         if not obj:
             raise CustomException(msg="创建任务失败")
+        if getattr(obj, "assigned_id", None):
+            await notify_task(self.db, obj, self.auth.user.id, "assigned", "你被指定为任务负责人", recipients={obj.assigned_id})
         return await self.detail(id=obj.id)
 
     async def update(self, id: int, data: TicketUpdateSchema) -> TicketOutSchema:
@@ -114,10 +117,15 @@ class TicketService:
                 raise CustomException(msg="仅创建人或管理员可以更换负责人")
             await self._validate_assignee(data.assigned_id)
 
+        old_assignee, old_status = obj.assigned_id, obj.status
         updated = await TicketCRUD(self.auth, self.db).update(id=id, data=data)
         if not updated:
             raise CustomException(msg="任务不存在")
 
+        if updated.assigned_id and updated.assigned_id != old_assignee:
+            await notify_task(self.db, updated, self.auth.user.id, "assigned", "你被指定为任务负责人", recipients={updated.assigned_id})
+        if updated.status != old_status:
+            await notify_task(self.db, updated, self.auth.user.id, "status", f"任务状态更新为：{_TICKET_STATUS_LABELS[updated.status]}")
         return await self.detail(id=updated.id)
 
     async def delete(self, ids: list[int]) -> None:
@@ -140,7 +148,10 @@ class TicketService:
             if not obj:
                 raise CustomException(msg=f"任务[{tid}]不存在")
             self._validate_status_transition(obj, data.status)
+        changed = [task for task in tickets if task.status != data.status]
         await TicketCRUD(self.auth, self.db).set(ids=data.ids, status=data.status)
+        for task in changed:
+            await notify_task(self.db, task, self.auth.user.id, "status", f"任务状态更新为：{_TICKET_STATUS_LABELS[data.status]}")
 
     async def get_list(
         self,
@@ -205,11 +216,12 @@ class TicketCommentService:
 
     async def create(self, ticket_id: int, data: TicketCommentCreateSchema) -> TicketCommentOutSchema:
         # 验证任务存在
-        await TicketCRUD(self.auth, self.db).get_or_404(id=ticket_id, msg="任务不存在")
+        task = await TicketCRUD(self.auth, self.db).get_or_404(id=ticket_id, msg="任务不存在")
         create_data = data.model_dump() | {"ticket_id": ticket_id}
         obj = await TicketCommentCRUD(self.auth, self.db).create(data=create_data)  # type: ignore[arg-type]
         if not obj:
             raise CustomException(msg="评论失败")
+        await notify_task(self.db, task, self.auth.user.id, "comment", "任务有新评论，查看同事的进展")
         return TicketCommentOutSchema.model_validate(obj)
 
     async def delete(self, comment_id: int) -> None:

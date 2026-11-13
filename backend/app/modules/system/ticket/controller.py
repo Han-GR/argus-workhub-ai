@@ -136,3 +136,8 @@ async def ticket_comment_create_controller(
 ) -> JSONResponse:
     result: TicketCommentOutSchema = await TicketCommentService(auth, db).create(ticket_id=ticket_id, data=data)
     return SuccessResponse(data=result, msg="评论成功")
+
+
+from .notifications import NotificationRouter
+
+TicketRouter.include_router(NotificationRouter)
