@@ -88,6 +88,8 @@ const toggleSidebar = () => emit("toggle-sidebar");
 <style lang="scss" scoped>
 .chat-navbar {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
@@ -106,7 +108,7 @@ const toggleSidebar = () => emit("toggle-sidebar");
 
   .navbar-right {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 12px;
     align-items: center;
 

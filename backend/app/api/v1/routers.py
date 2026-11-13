@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.modules.ai.chat.controller import ChatRouter
+from app.modules.ai.knowledge.controller import KnowledgeRouter
 from app.modules.common.file.controller import FileRouter
 from app.modules.monitor.health.controller import HealthRouter
 from app.modules.monitor.online.controller import OnlineRouter
@@ -43,7 +44,7 @@ DOMAIN_CONTROLLERS: dict[str, list[APIRouter]] = {
         StorageNodeRouter,
         StorageTransferRouter,
     ],
-    "/ai": [ChatRouter],
+    "/ai": [ChatRouter, KnowledgeRouter],
     "/common": [FileRouter],
 }
 

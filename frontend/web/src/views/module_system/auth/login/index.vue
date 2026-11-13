@@ -216,7 +216,7 @@ const accounts = computed<Account[]>(() => [
   {
     key: "user",
     label: t("login.roles.user"),
-    username: "user",
+    username: "chenyue",
     password: "123456",
     roles: ["R_USER"],
   },

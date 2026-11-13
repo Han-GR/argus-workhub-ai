@@ -1,11 +1,53 @@
 [
     {
-        "name": "系统部门",
-        "code": "DEFAULT",
-        "order": 1,
+        "name": "董事长办公室",
+        "code": "CHAIRMAN_OFFICE",
+        "order": 0,
         "status": 0,
-        "description": "系统默认部门",
         "parent_id": null,
-        "children": []
+        "children": [
+            {
+                "name": "行政部门",
+                "code": "ADMINISTRATION",
+                "order": 1,
+                "status": 0
+            },
+            {
+                "name": "人力资源部门",
+                "code": "HUMAN_RESOURCES",
+                "order": 2,
+                "status": 0
+            },
+            {
+                "name": "财务部门",
+                "code": "FINANCE",
+                "order": 3,
+                "status": 0
+            },
+            {
+                "name": "市场部门",
+                "code": "MARKETING",
+                "order": 4,
+                "status": 0
+            },
+            {
+                "name": "研发部门",
+                "code": "RESEARCH_DEVELOPMENT",
+                "order": 5,
+                "status": 0
+            },
+            {
+                "name": "生产部门",
+                "code": "PRODUCTION",
+                "order": 6,
+                "status": 0
+            },
+            {
+                "name": "技术部门",
+                "code": "TECHNOLOGY",
+                "order": 7,
+                "status": 0
+            }
+        ]
     }
 ]

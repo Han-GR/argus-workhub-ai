@@ -11,6 +11,8 @@ click==8.1.7                           # 命令行参数解析（typer 依赖）
 fastapi==0.138.2                       # Web 框架
 greenlet==3.5.2                        # SQLAlchemy 异步必需
 httpx==0.28.1                          # HTTP 客户端
+llama-index-core==0.12.52.post1         # RAG 文档分块与索引组件
+pypdf==7.0.1                          # 文字 PDF 提取
 loguru==0.7.3                          # 日志
 openai==2.46.0                         # OpenAI 兼容接口
 openpyxl==3.1.5                        # Excel 导入导出
