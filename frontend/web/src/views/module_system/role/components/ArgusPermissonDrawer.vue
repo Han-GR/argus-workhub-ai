@@ -131,7 +131,6 @@ const permissionState = ref<permissionDataType>({
   role_ids: [],
   menu_ids: [],
   data_scope: 1,
-  dept_ids: [],
 });
 
 const init = async () => {
@@ -148,7 +147,6 @@ const init = async () => {
       role_ids: [props.roleId],
       menu_ids: savedMenuIds,
       data_scope: roleResponse.data.data.data_scope || 1,
-      dept_ids: [],
     };
 
     menuCheckedIds.value = savedMenuIds;
@@ -184,7 +182,6 @@ async function handleDrawerSave() {
       role_ids: [props.roleId],
       menu_ids,
       data_scope: permissionState.value.data_scope,
-      dept_ids: [],
     };
 
     await RoleAPI.setPermission(submitData);

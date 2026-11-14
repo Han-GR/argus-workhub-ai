@@ -232,6 +232,8 @@ class KnowledgeService:
                 node.embedding = vector
         try:
             await asyncio.to_thread(write_vectors, namespace, fingerprint, config["dimensions"], nodes)
+        except CustomException:
+            raise
         except Exception as exc:
             raise CustomException(msg="Redis 向量索引写入失败，请检查 Search 功能后重试") from exc
         doc = KnowledgeDocumentModel(id=doc_id, index_namespace=namespace, uploaded_by=self.auth.user.id,
@@ -286,6 +288,8 @@ class KnowledgeService:
         try:
             results = await asyncio.gather(*(asyncio.to_thread(retrieve_vectors, namespace, fingerprint,
                 config["dimensions"], vectors[0], ids) for namespace, ids in groups.items()))
+        except CustomException:
+            raise
         except Exception as exc:
             raise CustomException(msg="Redis 检索失败，请联系上传者重建索引后重试") from exc
         candidates = []
@@ -310,6 +314,8 @@ class KnowledgeService:
             allowed = {source["number"] for source in sources}
             if not set(answer.citations).issubset(allowed):
                 raise ValueError("invalid citations")
+        except CustomException:
+            raise
         except Exception as exc:
             raise CustomException(msg="知识库回答生成失败，请检查聊天模型配置或稍后重试") from exc
         if not answer.citations:

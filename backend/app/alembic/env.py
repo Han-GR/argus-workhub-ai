@@ -84,17 +84,10 @@ def run_migrations_online() -> None:
         def include_name(name, type_, parent_names) -> bool:
             # 只对 MappedBase 中存在的表做 autogenerate 对比（官方推荐范式：
             # 用 schema_qualified_table_name 全名匹配），自动忽略数据库中的
-            # 非模型表（apscheduler_jobs、alembic_version 及未来新增的任何非模型表），
+            # Agno SDK 表与 alembic_version，
             # 避免被误判为多余表而生成 DROP。注意 include_name 仅作用于反射侧对象。
             if type_ == "table":
                 return parent_names["schema_qualified_table_name"] in target_metadata.tables
-            return True
-
-        def include_object(obj, name, type_, reflected, compare_to) -> bool:
-            # 代码生成插件使用物理表，迁移由 codegen 单独生成空迁移控制；
-            # 不参与自动 autogenerate，避免生成 create_table/alter 冲突迁移。
-            if type_ == "table" and getattr(obj, "info", {}).get("generated_plugin"):
-                return False
             return True
 
         context.configure(
@@ -105,11 +98,15 @@ def run_migrations_online() -> None:
             render_as_batch=True,  # SQLite 不支持部分 ALTER，须走 batch 重建；对 MySQL/PG 无影响
             transaction_per_migration=True,
             include_name=include_name,
-            include_object=include_object,
             process_revision_directives=process_revision_directives,
         )
-        context.run_migrations()
-        connection.commit()
+        try:
+            context.run_migrations()
+            connection.commit()
+        finally:
+            if connection.dialect.name == "mysql":
+                connection.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+                connection.commit()
 
     asyncio.run(run_async_migrations())
 

@@ -244,10 +244,6 @@ class CurrentUserOutSchema(UserOutSchema):
     positions: list[CommonSchema] | None = Field(default=[], description="岗位")
     roles: list[RoleOutSchema] | None = Field(default=[], description="角色")
     menus: list[MenuTreeOutSchema] | None = Field(default=[], description="菜单")
-    gitee_login: str | None = Field(default=None, max_length=32, description="Gitee登录")
-    github_login: str | None = Field(default=None, max_length=32, description="Github登录")
-    wx_login: str | None = Field(default=None, max_length=32, description="微信登录")
-    qq_login: str | None = Field(default=None, max_length=32, description="QQ登录")
 
 
 class UserQueryParam(BaseQueryParam, UserByQueryParam):

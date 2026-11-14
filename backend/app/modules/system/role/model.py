@@ -6,7 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base_model import MappedBase, ModelMixin, UserMixin
 
 if TYPE_CHECKING:
-    from app.modules.system.dept.model import DeptModel
     from app.modules.system.menu.model import MenuModel
     from app.modules.system.user.model import UserModel
 
@@ -34,30 +33,6 @@ class RoleMenusModel(MappedBase):
     )
 
 
-class RoleDeptsModel(MappedBase):
-    """角色部门关联表
-
-    定义角色与部门的多对多关系，用于数据权限控制
-    仅当角色的data_scope=5(自定义数据权限)时使用此表
-    """
-
-    __tablename__: str = "sys_role_depts"
-    __table_args__: dict[str, str] = {"comment": "角色部门关联表"}
-
-    role_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("sys_role.id", ondelete="CASCADE", onupdate="CASCADE"),
-        primary_key=True,
-        comment="角色ID",
-    )
-    dept_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("sys_dept.id", ondelete="CASCADE", onupdate="CASCADE"),
-        primary_key=True,
-        comment="部门ID",
-    )
-
-
 class RoleModel(ModelMixin, UserMixin):
     """角色模型"""
 
@@ -72,5 +47,4 @@ class RoleModel(ModelMixin, UserMixin):
     data_scope: Mapped[int] = mapped_column(Integer, default=1, nullable=False, comment="数据权限范围(1:仅本人 2:本部门及以下 3:全部)")
 
     menus: Mapped[list["MenuModel"]] = relationship(secondary="sys_role_menus", back_populates="roles", order_by="MenuModel.order")
-    depts: Mapped[list["DeptModel"]] = relationship(secondary="sys_role_depts", back_populates="roles")
     users: Mapped[list["UserModel"]] = relationship(secondary="sys_user_roles", back_populates="roles")

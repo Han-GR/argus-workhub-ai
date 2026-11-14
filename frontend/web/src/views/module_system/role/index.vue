@@ -86,7 +86,6 @@
               >{{ $t("common.dataScope") }}：{{ scopeText(row.data_scope) }}</span
             >
             <span>{{ $t("common.sort") }}：{{ row.order }}</span>
-            <span class="col-span-2 truncate">{{ $t("common.dept") }}：{{ deptText(row) }}</span>
             <span class="col-span-2"
               >{{ $t("common.create") }}：{{ formatDateTime(row.created_time) }}</span
             >
@@ -165,24 +164,6 @@
             />
             <ArgusStatusTag v-else type="success" label="全部数据权限" />
           </template>
-          <template #depts="{ row }">
-            <template
-              v-if="
-                (row as unknown as RoleTable)?.depts &&
-                (row as unknown as RoleTable).depts!.length > 0
-              "
-            >
-              <ElTag
-                v-for="dept in (row as unknown as RoleTable).depts!"
-                :key="dept.id"
-                type="info"
-                :style="'margin-right: 4px; margin-bottom: 4px'"
-              >
-                {{ dept.name }}
-              </ElTag>
-            </template>
-            <span v-else :style="'color: var(--el-text-color-placeholder)'">-</span>
-          </template>
         </ArgusDescriptions>
       </template>
       <template v-else>
@@ -226,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from "vue";
+import { computed } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import { useCrudForm } from "@/hooks/core/useCrudForm";
 import { confirmToggleStatus } from "@/hooks/core/useConfirm";
@@ -251,7 +232,6 @@ import type { SearchFormItem } from "@/components/forms/argus-search-bar/index.v
 import type ArgusSearchBar from "@/components/forms/argus-search-bar/index.vue";
 import type { FormItem } from "@/components/forms/argus-form/index.vue";
 import ArgusForm from "@/components/forms/argus-form/index.vue";
-import StatusTag from "@/components/display/argus-status-tag/index.vue";
 import { ElMessage } from "element-plus";
 import ArgusPermissonDrawer from "./components/ArgusPermissonDrawer.vue";
 import ArgusTableHeader from "@/components/tables/argus-table-header/index.vue";
@@ -287,27 +267,6 @@ function buildRoleReplaceParams(p: RoleSearchForm): Record<string, unknown> {
     updated_time:
       Array.isArray(p.updated_time) && p.updated_time.length === 2 ? p.updated_time : undefined,
   };
-}
-
-function deptsCell(row: RoleTable) {
-  const list = row.depts;
-  if (!list?.length) {
-    return h("span", { style: { color: "var(--el-text-color-placeholder)" } }, "-");
-  }
-  const tags = list.slice(0, 3).map((dept) =>
-    h(StatusTag, {
-      key: dept.id,
-      type: "info",
-      label: dept.name ?? "",
-      style: { marginRight: "4px", marginBottom: "4px" },
-    })
-  );
-  if (list.length > 3) {
-    tags.push(
-      h(StatusTag, { type: "info", label: `+${list.length - 3}`, style: { marginBottom: "4px" } })
-    );
-  }
-  return h("span", { class: "inline-flex flex-wrap items-center" }, tags);
 }
 
 function buildRoleRowActions(
@@ -467,7 +426,6 @@ const roleDetailItems: import("@/components/display/argus-descriptions/index.vue
     { label: "排序", prop: "order" },
     { label: "角色编码", prop: "code" },
     { label: "数据权限", prop: "data_scope", slot: "data_scope" },
-    { label: "所属部门", prop: "depts", slot: "depts" },
     {
       label: "状态",
       prop: "status",
@@ -581,11 +539,6 @@ function scopeText(scope?: number | null) {
   );
 }
 
-function deptText(row: RoleTable) {
-  const names = (row.depts ?? []).map((d) => d.name).filter(Boolean);
-  return names.length ? names.join("、") : "—";
-}
-
 const opCtx = {
   onPerm: handleOpenAssignPermDialog,
   onDetail: (id: number) => void handleOpenDialog("detail", id),
@@ -687,12 +640,6 @@ const {
           2: { type: "warning", text: "本部门及以下数据权限" },
           3: { type: "success", text: "全部数据权限" },
         },
-      },
-      {
-        prop: "depts",
-        label: "所属部门",
-        minWidth: 160,
-        formatter: (row: RoleTable) => deptsCell(row),
       },
       { prop: "order", label: "排序", width: 80, showOverflowTooltip: true },
       {

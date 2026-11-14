@@ -134,7 +134,6 @@ export interface SourceForm extends BaseFormType {
   bucket?: string;
   endpoint?: string;
   region?: string;
-  path_prefix?: string;
   scheme?: string;
   encrypt_type?: number;
   connection_mode?: number;
@@ -164,7 +163,6 @@ export interface SourceTable extends BaseType {
   bucket?: string;
   endpoint?: string;
   region?: string;
-  path_prefix?: string;
   scheme?: string;
   encrypt_type?: number;
   connection_mode?: number;

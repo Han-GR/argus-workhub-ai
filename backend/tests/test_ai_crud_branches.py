@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
 import app.modules.ai.chat.crud as C
-from app.core.exceptions import CustomException
-
 
 
 def test_row_session_name() -> None:
@@ -21,9 +18,10 @@ def test_row_session_name() -> None:
 
 async def test_init_tables_error(monkeypatch: pytest.MonkeyPatch) -> None:
     class D:
-        async def _create_all_tables(self): raise RuntimeError("exists")
+        async def _get_table(self, **kwargs): raise RuntimeError("unavailable")
     monkeypatch.setattr(C, "_get_agno_db", lambda: D())
-    await C.init_agno_tables()
+    with pytest.raises(RuntimeError, match="unavailable"):
+        await C.init_agno_tables()
 
 
 async def test_session_crud_errors(monkeypatch: pytest.MonkeyPatch) -> None:

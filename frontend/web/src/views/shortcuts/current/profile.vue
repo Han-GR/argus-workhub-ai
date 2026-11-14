@@ -109,28 +109,6 @@
               </div>
             </div>
           </div>
-
-          <div v-if="hasThirdPartyBindings" class="relative z-10 mt-10">
-            <h3 class="text-sm font-medium">第三方账号</h3>
-            <div class="flex flex-wrap justify-center mt-3.5 gap-3">
-              <div v-if="infoFormState.github_login" class="flex items-center text-xs text-g-600">
-                <ArgusSvgIcon icon="ri:github-fill" class="mr-1" />
-                {{ infoFormState.github_login }}
-              </div>
-              <div v-if="infoFormState.gitee_login" class="flex items-center text-xs text-g-600">
-                <ArgusSvgIcon icon="ri:gitee-fill" class="mr-1" />
-                {{ infoFormState.gitee_login }}
-              </div>
-              <div v-if="infoFormState.wx_login" class="flex items-center text-xs text-g-600">
-                <ArgusSvgIcon icon="ri:wechat-fill" class="mr-1" />
-                {{ infoFormState.wx_login }}
-              </div>
-              <div v-if="infoFormState.qq_login" class="flex items-center text-xs text-g-600">
-                <ArgusSvgIcon icon="ri:qq-fill" class="mr-1" />
-                {{ infoFormState.qq_login }}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -423,16 +401,6 @@ async function fetchCurrentSessions() {
   }
 }
 
-const hasThirdPartyBindings = computed(
-  () =>
-    !!(
-      infoFormState.github_login ||
-      infoFormState.gitee_login ||
-      infoFormState.wx_login ||
-      infoFormState.qq_login
-    )
-);
-
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return "—";
   const date = new Date(dateStr);
@@ -455,10 +423,6 @@ const infoFormState = reactive<InfoFormState>({
   updated_time: undefined,
   description: undefined,
   status: undefined,
-  github_login: undefined,
-  gitee_login: undefined,
-  wx_login: undefined,
-  qq_login: undefined,
 });
 
 const passwordFormState = reactive<PasswordFormState>({

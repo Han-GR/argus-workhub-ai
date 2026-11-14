@@ -36,7 +36,7 @@ from .schema import (
 _USER_PRELOAD = ["dept", "roles", "positions"]
 
 # 当前用户信息预加载：需完整嵌套关联
-_USER_CURRENT_PRELOAD = ["dept", "positions", "roles.menus", "roles.depts"]
+_USER_CURRENT_PRELOAD = ["dept", "positions", "roles.menus"]
 
 
 class UserService:

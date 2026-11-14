@@ -563,7 +563,6 @@ const sourceDetailItems: import("@/components/display/argus-descriptions/index.v
     { label: "Bucket", prop: "bucket" },
     { label: "端点地址", prop: "endpoint" },
     { label: "区域", prop: "region" },
-    { label: "路径前缀", prop: "path_prefix" },
     { label: "分片大小(MB)", prop: "multipart_part_size" },
     { label: "分片并发", prop: "multipart_concurrency" },
     { label: "内存预算(MB)", prop: "multipart_memory_budget" },
@@ -590,7 +589,6 @@ const initialFormData: SourceForm = {
   bucket: undefined,
   endpoint: undefined,
   region: undefined,
-  path_prefix: undefined,
   scheme: "https",
   encrypt_type: 1,
   connection_mode: 0,
@@ -772,13 +770,6 @@ const sourceDialogFormItems = computed<FormItem[]>(() => {
           allowCreate: true,
         },
       },
-      {
-        label: "路径前缀",
-        key: "path_prefix",
-        type: "input",
-        span: 12,
-        props: { placeholder: "统一路径前缀(可选)", maxlength: 255 },
-      },
       // ── 分片传输参数（对象存储分片上传，每个端点独立配置） ──
       {
         label: "分片大小",
@@ -842,23 +833,8 @@ const sourceDialogFormItems = computed<FormItem[]>(() => {
           type: "input",
           span: 12,
           props: { type: "password", showPassword: true, placeholder: "密码，修改时留空则不修改" },
-        },
-        {
-          label: "路径前缀",
-          key: "path_prefix",
-          type: "input",
-          span: 12,
-          props: { placeholder: "统一路径前缀(可选)", maxlength: 255 },
         }
       );
-    } else {
-      items.push({
-        label: "路径前缀",
-        key: "path_prefix",
-        type: "input",
-        span: 12,
-        props: { placeholder: "统一路径前缀(可选)", maxlength: 255 },
-      });
     }
     if (isFtp) {
       items.push(

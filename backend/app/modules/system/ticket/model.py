@@ -1,6 +1,6 @@
-from uuid import uuid4
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -25,8 +25,6 @@ class TicketModel(ModelMixin, UserMixin):
     ticket_content: Mapped[str | None] = mapped_column(Text, nullable=True, comment="任务内容（富文本）")
     summary: Mapped[str | None] = mapped_column(Text, nullable=True, comment="任务内容（纯文本摘要）")
     ticket_type: Mapped[str] = mapped_column(String(20), nullable=False, default="suggestion", comment="任务类型(suggestion:建议 bug:缺陷 optimize:优化 other:其他)")
-    images: Mapped[str | None] = mapped_column(Text, nullable=True, comment="图片URL列表(JSON数组)")
-    reply: Mapped[str | None] = mapped_column(Text, nullable=True, comment="回复内容")
     assigned_id: Mapped[int | None] = mapped_column(ForeignKey("sys_user.id", ondelete="SET NULL", onupdate="CASCADE"), nullable=True, index=True, comment="负责人ID")
 
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1", comment="优先级(0低/1普通/2高/3紧急)")

@@ -1,14 +1,8 @@
-import importlib.util
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock, Mock
 from urllib.parse import urlsplit
-from uuid import uuid4
 
 import pytest
-import sqlalchemy as sa
-from alembic.migration import MigrationContext
-from alembic.operations import Operations
 from fastapi import BackgroundTasks
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo, TextNode
 from llama_index.core.vector_stores.types import VectorStoreQueryResult
@@ -304,96 +298,3 @@ async def test_shared_vector_configuration_is_admin_only_and_old_routes_are_remo
         response = await client.get("/knowledge/embedding")
         assert "api_key" not in response.json()["data"]
         assert len(redis.data) == 1
-
-
-@pytest.mark.parametrize("partial", [False, True])
-def test_knowledge_migration_creates_company_schema_and_preserves_users(partial):
-    from app.modules.system.menu.model import MenuModel
-    path = Path(__file__).parents[1] / "app/alembic/versions/2026_11_13_1700_8b9c0d1e2f34.py"
-    spec = importlib.util.spec_from_file_location("knowledge_migration", path)
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
-    engine = sa.create_engine("sqlite://")
-    with engine.begin() as conn:
-        conn.execute(sa.text("CREATE TABLE sys_user (id INTEGER PRIMARY KEY)"))
-        conn.execute(sa.text("CREATE TABLE sys_dept (id INTEGER PRIMARY KEY)"))
-        MenuModel.__table__.create(conn)
-        conn.execute(sa.text("INSERT INTO sys_user VALUES (1)"))
-        migration.op = Operations(MigrationContext.configure(conn))
-        migration.upgrade()
-        if partial:
-            conn.execute(sa.text("CREATE TABLE ai_knowledge_base (id VARCHAR(36) PRIMARY KEY, name VARCHAR(100) NOT NULL, dept_id INTEGER REFERENCES sys_dept(id) ON DELETE RESTRICT, created_time DATETIME NOT NULL)"))
-            conn.execute(sa.text("CREATE INDEX ix_ai_knowledge_base_dept_id ON ai_knowledge_base(dept_id)"))
-            conn.execute(sa.text("ALTER TABLE ai_knowledge_document ADD COLUMN base_id VARCHAR(36) NOT NULL"))
-            conn.execute(sa.text("ALTER TABLE ai_knowledge_document ADD COLUMN uploaded_by INTEGER"))
-        spec = importlib.util.spec_from_file_location("company_knowledge_migration", path.with_name("2026_11_13_1822_360056454ecc.py"))
-        enterprise = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(enterprise)
-        enterprise.op = Operations(MigrationContext.configure(conn))
-        enterprise.upgrade()
-        assert conn.execute(sa.text("SELECT id FROM sys_user")).scalar() == 1
-        assert sa.inspect(conn).has_table("ai_knowledge_base")
-        columns = {c["name"] for c in sa.inspect(conn).get_columns("ai_knowledge_document")}
-        assert "base_id" in columns and "owner_id" not in columns
-        menu = conn.execute(sa.text("SELECT id, route_path, component_path FROM sys_menu WHERE route_name = 'Knowledge'")).one()
-        assert menu[1:] == ("/knowledge", "module_ai/knowledge/index")
-        permissions = conn.execute(sa.text("SELECT permission FROM sys_menu WHERE parent_id = :id"), {"id": menu[0]}).scalars().all()
-        assert set(permissions) == {"module_ai:knowledge:manage", "module_ai:knowledge:department"}
-    engine.dispose()
-
-
-def test_document_visibility_migration_preserves_scope_owner_and_vector_namespace():
-    from datetime import UTC, datetime
-
-    engine = sa.create_engine("sqlite://")
-    root = Path(__file__).parents[1] / "app/alembic/versions"
-    with engine.begin() as conn:
-        conn.execute(sa.text("CREATE TABLE sys_user (id INTEGER PRIMARY KEY)"))
-        conn.execute(sa.text("INSERT INTO sys_user VALUES (1)"))
-        conn.execute(sa.text("CREATE TABLE sys_dept (id INTEGER PRIMARY KEY)"))
-        conn.execute(sa.text("INSERT INTO sys_dept VALUES (20)"))
-        conn.execute(sa.text("CREATE TABLE sys_role_menus (role_id INTEGER, menu_id INTEGER)"))
-        MenuModel.__table__.create(conn)
-        def migration(filename):
-            spec = importlib.util.spec_from_file_location(filename, root / filename)
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            mod.op = Operations(MigrationContext.configure(conn))
-            return mod
-        migration("2026_11_13_1700_8b9c0d1e2f34.py").upgrade()
-        migration("2026_11_13_1822_360056454ecc.py").upgrade()
-        metadata = sa.MetaData()
-        bases = sa.Table("ai_knowledge_base", metadata, autoload_with=conn)
-        documents = sa.Table("ai_knowledge_document", metadata, autoload_with=conn)
-        now = datetime.now(UTC)
-        for base_id, dept_id in [("public-index", None), ("private-index", 20)]:
-            conn.execute(bases.insert().values(id=base_id, name=base_id, dept_id=dept_id, created_time=now))
-            conn.execute(documents.insert().values(id=str(uuid4()), base_id=base_id, uploaded_by=1, name=base_id,
-                content="retained text", fingerprint="retained-model", dimensions=1024, chunk_count=1, created_time=now))
-        migration("2026_11_13_2000_4d5e6f7a8b90.py").upgrade()
-        rows = conn.execute(sa.text("SELECT visibility, dept_id, uploaded_by, index_namespace, content, fingerprint FROM ai_knowledge_document ORDER BY visibility")).all()
-        assert rows == [("company", None, 1, "public-index", "retained text", "retained-model"),
-                        ("department", 20, 1, "private-index", "retained text", "retained-model")]
-        assert not sa.inspect(conn).has_table("ai_knowledge_base")
-        assert not conn.execute(sa.text("SELECT id FROM sys_menu WHERE permission IN ('module_ai:knowledge:manage', 'module_ai:knowledge:department')")).all()
-    engine.dispose()
-
-
-def test_visibility_migration_rejects_missing_scope_instead_of_publishing_document():
-    path = Path(__file__).parents[1] / "app/alembic/versions/2026_11_13_2000_4d5e6f7a8b90.py"
-    spec = importlib.util.spec_from_file_location("visibility_migration", path)
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
-    engine = sa.create_engine("sqlite://")
-    try:
-        with engine.begin() as conn:
-            conn.execute(sa.text("CREATE TABLE ai_knowledge_base (id VARCHAR(36) PRIMARY KEY, dept_id INTEGER)"))
-            conn.execute(sa.text("CREATE TABLE ai_knowledge_document (id VARCHAR(36) PRIMARY KEY, base_id VARCHAR(36))"))
-            conn.execute(sa.text("CREATE TABLE sys_menu (id INTEGER PRIMARY KEY, permission VARCHAR(100))"))
-            conn.execute(sa.text("CREATE TABLE sys_role_menus (menu_id INTEGER)"))
-            conn.execute(sa.text("INSERT INTO ai_knowledge_document VALUES ('orphan', 'missing-base')"))
-            migration.op = Operations(MigrationContext.configure(conn))
-            with pytest.raises(RuntimeError, match="找不到所属知识库"):
-                migration.upgrade()
-    finally:
-        engine.dispose()

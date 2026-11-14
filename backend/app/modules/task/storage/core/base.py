@@ -85,7 +85,7 @@ def decrypt_password(cipher: str | None) -> str:
 
 
 # 文件系统类协议与对象存储类协议的划分：仅用于文档说明与配置元数据，
-# 浏览/操作统一以"存储真根"为基准，path_prefix 不参与任何 key 计算。
+# 浏览/操作统一以"存储真根"为基准，所有 key 均相对存储根目录。
 _FILE_SYSTEM_PROTOCOLS: frozenset[StorageProtocol] = frozenset(
     {StorageProtocol.FTP, StorageProtocol.FTPS, StorageProtocol.SFTP, StorageProtocol.LOCAL}
 )
@@ -110,7 +110,6 @@ class StorageAdapterConfig(BaseModel):
     endpoint: str | None = Field(default=None, description="接入点（对象存储）")
     scheme: str = Field(default="https", description="对象存储访问协议(http/https)")
     region: str | None = Field(default=None, description="区域（对象存储）")
-    path_prefix: str | None = Field(default=None, description="路径前缀（仅作节点元数据/传输默认路径，不参与浏览与 key 计算）")
     is_secure: bool = Field(default=False, description="是否启用 TLS（FTPS 显示加密 / COS 访问协议）")
     implicit_tls: bool = Field(default=False, description="FTPS 是否隐式 TLS（默认显式）")
     encrypt_type: int = Field(default=1, description="FTPS加密类型(0=明文 1=显式TLS可用时 2=要求显式TLS 3=隐式TLS)")
@@ -140,7 +139,7 @@ class StorageObject(BaseModel):
     """远端文件对象信息"""
 
     name: str = Field(description="文件/目录名")
-    key: str = Field(description="相对存储真根的路径（path_prefix 仅作为普通目录层，不做剥离）")
+    key: str = Field(description="相对存储根目录的路径")
     is_dir: bool = Field(default=False, description="是否目录")
     size: int | None = Field(default=None, description="大小（字节）")
     modified_time: datetime | None = Field(default=None, description="修改时间")

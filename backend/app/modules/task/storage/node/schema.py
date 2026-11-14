@@ -17,7 +17,6 @@ class StorageNodeConfigSchema(BaseModel):
     bucket: str | None = Field(default=None, max_length=255, description="桶名/根目录")
     endpoint: str | None = Field(default=None, max_length=255, description="接入点(对象存储)")
     region: str | None = Field(default=None, max_length=64, description="区域(对象存储)")
-    path_prefix: str | None = Field(default=None, max_length=255, description="统一路径前缀")
     is_secure: bool = Field(default=False, description="是否启用TLS(FTPS)")
     implicit_tls: bool = Field(default=False, description="FTPS是否隐式TLS(默认显式)")
     scheme: str = Field(default="https", description="对象存储访问协议(http/https)")
@@ -30,15 +29,6 @@ class StorageNodeConfigSchema(BaseModel):
     multipart_memory_budget: int = Field(default=512, ge=8, le=10240, description="分片上传内存预算(MB)")
     # SDK 高级配置（按协议解析，见 core/base.py；留空使用默认值）
     advanced_config: dict | None = Field(default=None, description="SDK高级配置(JSON)")
-
-    @field_validator("path_prefix")
-    @classmethod
-    def validate_path_prefix(cls, value: str | None) -> str | None:
-        if value:
-            value = value.strip()
-            if ".." in value or "\x00" in value:
-                raise ValueError("路径前缀包含非法字符")
-        return value
 
     @field_validator("encoding")
     @classmethod

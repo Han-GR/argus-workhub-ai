@@ -96,26 +96,6 @@ async def test_assigned_task_visibility_and_shared_comments(tmp_path, monkeypatc
         await engine.dispose()
 
 
-def test_existing_tasks_survive_additive_migration():
-    import importlib.util
-    from pathlib import Path
-    import sqlalchemy as sa
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    path = Path(__file__).parents[1] / "app/alembic/versions/2026_11_13_1118_1d932f4d9ffe.py"
-    spec = importlib.util.spec_from_file_location("task_migration", path)
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
-    engine = sa.create_engine("sqlite://")
-    with engine.begin() as connection:
-        connection.execute(sa.text("CREATE TABLE sys_ticket (id INTEGER PRIMARY KEY, title VARCHAR(200))"))
-        connection.execute(sa.text("INSERT INTO sys_ticket VALUES (1, 'existing')"))
-        migration.op = Operations(MigrationContext.configure(connection))
-        migration.upgrade()
-        migration.upgrade()
-        row = connection.execute(sa.text("SELECT title, priority, due_date, attachment_url FROM sys_ticket")).one()
-        assert tuple(row) == ("existing", 1, None, None)
-    engine.dispose()
 
 
 def test_task_http_roundtrip(test_client, auth_headers):

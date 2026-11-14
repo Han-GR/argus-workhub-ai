@@ -44,7 +44,7 @@ os.environ["MAX_OVERFLOW"] = "1"
 os.environ["SECRET_KEY"] = "unit-test-secret-key-not-a-real-secret"  # Settings 必填项，固定注入保证测试确定性
 
 # 迁移守卫快照：conftest import 时刻早于任何布局（init_db），供 test_migrations.py
-# 比对 TestClient 布局期间 versions/ 目录是否被 dev 自动迁移写入文件（漂移/污染信号）
+# 比对 TestClient 布局期间 versions/ 目录是否被意外写入文件
 from app.config.path_conf import ALEMBIC_VERSION_DIR
 
 _versions_before_layout: frozenset[str] = frozenset(p.name for p in ALEMBIC_VERSION_DIR.glob("*.py"))

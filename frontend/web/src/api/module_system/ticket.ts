@@ -78,8 +78,6 @@ export interface TicketTable extends BaseType {
   ticket_content?: string;
   summary?: string;
   ticket_type: string;
-  images?: string;
-  reply?: string;
   assigned_id?: number | null;
   assigned_by?: CommonType;
   status?: number;
@@ -95,7 +93,6 @@ export interface TicketCreateForm {
   ticket_content?: string;
   summary?: string;
   ticket_type: string;
-  images?: string;
   description?: string;
 }
 
@@ -108,7 +105,6 @@ export interface TicketUpdateForm {
   summary?: string;
   ticket_type?: string;
   status?: number;
-  reply?: string;
   assigned_id?: number | null;
   description?: string;
 }
@@ -121,8 +117,6 @@ export interface TicketForm extends BaseFormType {
   ticket_content?: string;
   summary?: string;
   ticket_type: string;
-  images?: string;
-  reply?: string;
   assigned_id?: number | null;
   status?: number;
   description?: string;

@@ -6,7 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.base_model import ModelMixin, UserMixin
 
 if TYPE_CHECKING:
-    from app.modules.system.role.model import RoleModel
     from app.modules.system.user.model import UserModel
 
 
@@ -35,5 +34,4 @@ class DeptModel(ModelMixin, UserMixin):
         uselist=False,
     )
     children: Mapped[list["DeptModel"]] = relationship(back_populates="parent", foreign_keys=[parent_id])
-    roles: Mapped[list["RoleModel"]] = relationship(secondary="sys_role_depts", back_populates="depts")
     users: Mapped[list["UserModel"]] = relationship(back_populates="dept", foreign_keys="UserModel.dept_id")

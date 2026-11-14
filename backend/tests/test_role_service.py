@@ -78,7 +78,6 @@ async def test_role_load_set_permission(monkeypatch: pytest.MonkeyPatch) -> None
         async def get_list(self, **kw): return [SimpleNamespace(id=1)]
     monkeypatch.setattr(mod, "RoleCRUD", R)
     monkeypatch.setattr(mod, "MenuCRUD", M)
-    monkeypatch.setattr(mod, "DeptCRUD", D)
     s = RoleService.__new__(RoleService); s.auth = object(); s.db = object()
     await s.set_permission(type("P", (), {"role_ids": [1], "menu_ids": [1], "data_scope": 2})())
     with pytest.raises(CustomException, match="不能为空"):
@@ -125,18 +124,6 @@ async def test_role_set_menus_missing(monkeypatch: pytest.MonkeyPatch) -> None:
         await s._set_role_menus([1],[2])
 
 
-async def test_role_set_depts_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    import app.modules.system.role.service as mod
-    class R:
-        def __init__(self,*a): pass
-        async def get_list(self,**kw): return [SimpleNamespace(id=1)]
-    class D:
-        def __init__(self,*a): pass
-        async def get_list(self,**kw): return []
-    monkeypatch.setattr(mod,"RoleCRUD",R); monkeypatch.setattr(mod,"DeptCRUD",D)
-    s=RoleService.__new__(RoleService); s.auth=object(); s.db=object()
-    with pytest.raises(CustomException, match="部门不存在"):
-        await s._set_role_depts([1],[2])
 
 
 async def test_role_set_menus_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -154,18 +141,6 @@ async def test_role_set_menus_success(monkeypatch: pytest.MonkeyPatch) -> None:
     await s._set_role_menus([1],[2])
 
 
-async def test_role_set_depts_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    import app.modules.system.role.service as mod
-    class R:
-        def __init__(self,*a): pass
-        async def get_list(self,**kw): return [SimpleNamespace(id=1)]
-        async def set_role_depts_crud(self,**kw): self.called=True
-    class D:
-        def __init__(self,*a): pass
-        async def get_list(self,**kw): return [SimpleNamespace(id=2)]
-    monkeypatch.setattr(mod,"RoleCRUD",R); monkeypatch.setattr(mod,"DeptCRUD",D)
-    s=RoleService.__new__(RoleService); s.auth=object(); s.db=object()
-    await s._set_role_depts([1],[2])
 
 
 async def test_role_set_menus_empty_success(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,15 +154,6 @@ async def test_role_set_menus_empty_success(monkeypatch: pytest.MonkeyPatch) -> 
     await s._set_role_menus([1],[])
 
 
-async def test_role_set_depts_empty_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    import app.modules.system.role.service as mod
-    class R:
-        def __init__(self,*a): pass
-        async def get_list(self,**kw): return [SimpleNamespace(id=1)]
-        async def set_role_depts_crud(self,**kw): self.called=True
-    monkeypatch.setattr(mod,"RoleCRUD",R)
-    s=RoleService.__new__(RoleService); s.auth=object(); s.db=object()
-    await s._set_role_depts([1],[])
 
 
 async def test_load_roles_duplicate_ids(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -201,8 +167,8 @@ async def test_load_roles_duplicate_ids(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 async def test_role_set_permission_empty_roles(monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.modules.system.role.schema import RolePermissionSettingSchema
     import app.modules.system.role.service as mod
+    from app.modules.system.role.schema import RolePermissionSettingSchema
     class R:
         def __init__(self,*a): pass
         async def get_list(self,**kw): return []

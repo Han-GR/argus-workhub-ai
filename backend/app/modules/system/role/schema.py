@@ -11,7 +11,6 @@ from app.core.validator import (
     role_permission_request_validator,
     validate_required_code,
 )
-from app.modules.system.dept.schema import DeptOutSchema
 from app.modules.system.menu.schema import MenuOutSchema
 
 
@@ -58,7 +57,6 @@ class RolePermissionSettingSchema(BaseModel):
     )
     role_ids: list[int] = Field(default_factory=list, description="角色ID列表")
     menu_ids: list[int] = Field(default_factory=list, description="菜单ID列表")
-    dept_ids: list[int] = Field(default_factory=list, description="部门ID列表")
 
     @model_validator(mode="after")
     def validate_fields(self):
@@ -82,7 +80,6 @@ class RoleOutSchema(RoleCreateSchema, BaseSchema, UserBySchema):
     model_config = ConfigDict(from_attributes=True)
 
     menus: list[MenuOutSchema] = Field(default_factory=list, description="角色菜单列表")
-    depts: list[DeptOutSchema] = Field(default_factory=list, description="角色部门列表")
 
 
 class RoleQueryParam(BaseQueryParam, UserByQueryParam):

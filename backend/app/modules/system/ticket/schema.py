@@ -21,7 +21,6 @@ class TicketCreateSchema(BaseModel):
     ticket_content: str = Field(default="", description="任务内容（富文本）")
     summary: str | None = Field(default=None, description="任务内容（纯文本摘要）")
     ticket_type: TicketTypeEnum = Field(default=TicketTypeEnum.SUGGESTION, description="任务类型(suggestion/bug/optimize/other)")
-    images: str | None = Field(default=None, description="图片URL列表(JSON数组)")
     description: str | None = Field(default=None, max_length=255, description="任务描述")
 
     assigned_id: int | None = Field(default=None, gt=0, description="负责人ID")
@@ -56,7 +55,6 @@ class TicketUpdateSchema(BaseModel):
     summary: str | None = Field(default=None, description="任务内容（纯文本摘要）")
     ticket_type: TicketTypeEnum | None = Field(default=None, description="任务类型")
     status: int | None = Field(default=None, ge=0, le=3, description="状态(0:待开始 1:进行中 2:已完成 3:已取消)")
-    reply: str | None = Field(default=None, description="回复内容")
     assigned_id: int | None = Field(default=None, gt=0, description="负责人ID")
     description: str | None = Field(default=None, max_length=255, description="任务描述")
 
@@ -95,8 +93,6 @@ class TicketOutSchema(BaseSchema, UserBySchema):
     summary: str | None = Field(default=None, description="摘要")
     ticket_type: TicketTypeEnum = Field(..., description="任务类型")
     status: int = Field(..., description="状态(0:待开始 1:进行中 2:已完成 3:已取消)")
-    images: str | None = Field(default=None, description="图片")
-    reply: str | None = Field(default=None, description="回复内容")
     assigned_id: int | None = Field(default=None, description="指派人ID")
     assigned_by: CommonSchema | None = Field(default=None, description="指派人")
 

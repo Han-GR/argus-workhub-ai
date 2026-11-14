@@ -24,7 +24,6 @@ EXPORT_FIELDS: tuple[str, ...] = (
     "bucket",
     "endpoint",
     "region",
-    "path_prefix",
     "is_secure",
     "implicit_tls",
     "scheme",

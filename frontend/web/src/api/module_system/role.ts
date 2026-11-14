@@ -89,7 +89,6 @@ export interface RoleTable extends BaseType {
   code: string;
   data_scope?: number;
   menus?: permissionMenuType[];
-  depts?: permissionDeptType[];
   status?: number;
   description?: string;
 }
@@ -107,14 +106,6 @@ export interface permissionDataType {
   data_scope: number;
   role_ids: RoleTable["id"][];
   menu_ids: permissionMenuType["id"][];
-  dept_ids: permissionDeptType["id"][];
-}
-
-export interface permissionDeptType {
-  id: number;
-  name: string;
-  parent_id: number;
-  children: permissionDeptType[];
 }
 
 export interface permissionMenuType {

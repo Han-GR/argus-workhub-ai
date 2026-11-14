@@ -4,7 +4,6 @@
     "protocol": "local",
     "host": "data/archive",
     "port": 0,
-    "path_prefix": null,
     "is_default": true,
     "status": 0,
     "description": "受权限控制的私有档案存储，不通过静态地址公开访问"

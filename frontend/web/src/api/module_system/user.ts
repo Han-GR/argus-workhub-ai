@@ -188,10 +188,6 @@ export interface UserInfo extends BaseType {
   created_by?: CommonType;
   updated_by?: CommonType;
   deleted_by?: CommonType;
-  gitee_login?: string;
-  github_login?: string;
-  wx_login?: string;
-  qq_login?: string;
   status?: number;
   description?: string;
 }
@@ -235,10 +231,6 @@ export interface InfoFormState {
   updated_time?: string;
   status?: number;
   description?: string;
-  gitee_login?: string;
-  github_login?: string;
-  wx_login?: string;
-  qq_login?: string;
 }
 
 export interface PasswordFormState {

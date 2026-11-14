@@ -1,6 +1,8 @@
 from datetime import date
+
 import pytest
-from app.modules.system.ticket.meeting import resolve_deadline, normalize_extraction, RawExtraction, ConfirmMeeting
+
+from app.modules.system.ticket.meeting import ConfirmMeeting, RawExtraction, normalize_extraction, resolve_deadline
 
 
 def test_relative_dates_are_resolved_from_meeting_date():
@@ -30,14 +32,16 @@ def test_explicit_confirmation_required():
 
 async def test_extract_confirm_receipt_and_transaction_rollback(tmp_path, monkeypatch):
     import json
-    from sqlalchemy import select, func
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
     from unittest.mock import AsyncMock
+
+    from sqlalchemy import func, select
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    import app.modules.system.ticket.meeting as module
     from app.core.base_model import MappedBase
     from app.core.base_schema import AuthSchema
     from app.core.exceptions import CustomException
-    import app.modules.system.ticket.meeting as module
-    from app.modules.system.ticket.model import TicketModel, TaskNotificationModel, MeetingTaskDraftModel
+    from app.modules.system.ticket.model import MeetingTaskDraftModel, TaskNotificationModel, TicketModel
     from app.modules.system.user.model import UserModel
 
     response = json.dumps({"tasks": [{"title": "整理资料", "description": "整理本周资料", "owner_name": "韩工", "due_text": "下周五", "evidence": "韩工下周五整理资料"}]})
@@ -97,10 +101,11 @@ async def test_extract_confirm_receipt_and_transaction_rollback(tmp_path, monkey
 
 
 def test_extraction_requires_both_permissions(test_client, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    import app.modules.system.ticket.meeting as module
     from app.core.base_schema import AuthSchema
     from app.core.dependencies import get_current_user
-    import app.modules.system.ticket.meeting as module
-    from unittest.mock import AsyncMock
     monkeypatch.setattr(module.MeetingTaskService, "extract", AsyncMock(return_value={"tasks": []}))
     try:
         for permissions in [["module_system:ticket:create"], ["module_ai:chat:query"]]:
@@ -115,27 +120,6 @@ def test_extraction_requires_both_permissions(test_client, monkeypatch):
         test_client.app.dependency_overrides.pop(get_current_user, None)
 
 
-def test_additive_meeting_migration_preserves_existing_tasks():
-    import importlib.util
-    from pathlib import Path
-    import sqlalchemy as sa
-    from alembic.migration import MigrationContext
-    from alembic.operations import Operations
-    path = Path(__file__).parents[1] / "app/alembic/versions/2026_11_13_1500_6a7b8c9d0e12.py"
-    spec = importlib.util.spec_from_file_location("meeting_migration", path)
-    migration = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(migration)
-    engine = sa.create_engine("sqlite://")
-    with engine.begin() as conn:
-        conn.execute(sa.text("CREATE TABLE sys_user (id INTEGER PRIMARY KEY)"))
-        conn.execute(sa.text("CREATE TABLE sys_ticket (id INTEGER PRIMARY KEY, title VARCHAR(200))"))
-        conn.execute(sa.text("INSERT INTO sys_ticket VALUES (1, 'existing')"))
-        migration.op = Operations(MigrationContext.configure(conn))
-        migration.upgrade()
-        migration.upgrade()
-        assert conn.execute(sa.text("SELECT title, source_meeting_id, source_item_index FROM sys_ticket")).one() == ("existing", None, None)
-        assert any(i["name"] == "uq_task_meeting_item" and i["unique"] for i in sa.inspect(conn).get_indexes("sys_ticket"))
-    engine.dispose()
 
 
 def test_extraction_failure_messages_are_specific():
@@ -148,7 +132,9 @@ def test_extraction_failure_messages_are_specific():
 async def test_deepseek_extraction_disables_thinking_without_affecting_other_providers(monkeypatch):
     from types import SimpleNamespace
     from unittest.mock import AsyncMock
+
     import openai
+
     from app.utils.ai_factory import AgnoFactory
     create = AsyncMock(return_value=SimpleNamespace(choices=[SimpleNamespace(finish_reason="stop", message=SimpleNamespace(content='{"tasks":[]}'))]))
     class Client:

@@ -245,7 +245,6 @@ def test_menu_boundary(case: str, data: dict[str, Any], ok: bool) -> None:
         ("STORAGE-CONC-001", {"protocol": "s3", "bucket": "b", "endpoint": "https://e", "multipart_concurrency": 0}, False),
         ("STORAGE-CONC-002", {"protocol": "s3", "bucket": "b", "endpoint": "https://e", "multipart_concurrency": 64}, True),
         ("STORAGE-CONC-003", {"protocol": "s3", "bucket": "b", "endpoint": "https://e", "multipart_concurrency": 65}, False),
-        ("STORAGE-PREFIX-001", {"protocol": "local", "host": "x", "path_prefix": "../etc"}, False),
         ("STORAGE-ENCODING-001", {"protocol": "local", "host": "x", "encoding": "gbk"}, True),
         ("STORAGE-ENCODING-002", {"protocol": "local", "host": "x", "encoding": "not-a-codec"}, False),
     ],

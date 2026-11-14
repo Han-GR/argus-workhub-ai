@@ -39,7 +39,8 @@ services:
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8001}:8001"
     volumes:
-      - ./backend/static/upload:/home/static/upload
+      - backend_uploads:/home/static/upload
+      - backend_data:/home/data
     networks:
       - app_network
     healthcheck:
@@ -64,6 +65,9 @@ services:
         condition: service_healthy
     networks:
       - app_network
+volumes:
+  backend_uploads:
+  backend_data:
 networks:
   app_network:
     ipam:

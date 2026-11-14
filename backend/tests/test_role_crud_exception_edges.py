@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
@@ -22,8 +21,7 @@ async def test_role_relations() -> None:
     r = RoleCRUD(SimpleNamespace(user=SimpleNamespace(id=1)), DB())
     obj = SimpleNamespace(menus=Items([1]), depts=Items([2]))
     await r.set_role_menus_crud([obj], [9])
-    await r.set_role_depts_crud([obj], [8])
-    assert list(obj.menus) == [9] and list(obj.depts) == [8]
+    assert list(obj.menus) == [9]
 
 
 def test_integrity_error_variants() -> None:

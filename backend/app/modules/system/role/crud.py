@@ -28,19 +28,6 @@ class RoleCRUD(CRUDBase[RoleModel, RoleCreateSchema, RoleUpdateSchema]):
             obj.menus.extend(menu_objs)
         await self.db.flush()
 
-    async def set_role_depts_crud(self, role_objs: Sequence[RoleModel], dept_objs: Sequence[Any]) -> None:
-        """替换角色的部门关联（纯数据操作；存在性校验与编排由 Service 完成）
-
-        参数:
-        - role_objs (Sequence[RoleModel]): 待更新角色（需预加载 depts）
-        - dept_objs (Sequence[Any]): 目标部门对象列表
-        """
-        for obj in role_objs:
-            relationship = obj.depts
-            relationship.clear()
-            relationship.extend(dept_objs)
-        await self.db.flush()
-
     async def get_options(self) -> list[dict[str, Any]]:
         """获取角色下拉选项，返回 [{value, label}]（自动按状态过滤）"""
         items = await self.get_list(search={"status": 0})

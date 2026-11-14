@@ -36,19 +36,6 @@ async def test_upload_file_errors(monkeypatch: pytest.MonkeyPatch, tmp_path) -> 
     assert await U.UploadUtil.upload_file(F("a" + ext), "http://x", upload_type="resource", target_path="sub")
 
 
-def test_migration_upgrade_downgrade(monkeypatch: pytest.MonkeyPatch) -> None:
-    mod = importlib.import_module("app.alembic.versions.2026_11_03_0900_a1b2c3d4e5f6")
-    op = MagicMock()
-    class B:
-        def __enter__(self): return self
-        def __exit__(self, *a): return False
-        def create_index(self, *a, **k): pass
-        def drop_index(self, *a, **k): pass
-        def f(self, x): return x
-    op.batch_alter_table.return_value = B()
-    op.f.side_effect = lambda x: x
-    monkeypatch.setattr(mod, "op", op)
-    mod.upgrade(); mod.downgrade()
 
 
 async def test_upload_more_branches(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:

@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, BatchSetAvailable, PageResultSchema
 from app.core.exceptions import CustomException
-from app.modules.system.dept.crud import DeptCRUD
 from app.modules.system.menu.crud import MenuCRUD
 from app.utils.common_util import search_to_dict
 from app.utils.excel_util import ExcelUtil
@@ -20,7 +19,7 @@ from .schema import (
     RoleUpdateSchema,
 )
 
-_ROLE_PRELOAD = ["menus", "depts"]
+_ROLE_PRELOAD = ["menus"]
 
 
 class RoleService:
@@ -160,9 +159,7 @@ class RoleService:
         """
         await self._set_role_menus(role_ids=data.role_ids, menu_ids=data.menu_ids)
 
-        # 设置数据权限范围（自定义部门关联已废弃，直接清空）
         await RoleCRUD(self.auth, self.db).set(ids=data.role_ids, data_scope=data.data_scope)
-        await self._set_role_depts(role_ids=data.role_ids, dept_ids=[])
 
     async def _load_roles(self, role_ids: list[int], preload: list[str]) -> Sequence[RoleModel]:
         """加载角色并校验存在性。"""
@@ -182,15 +179,6 @@ class RoleService:
             missing = sorted(set(menu_ids) - {m.id for m in menus})
             raise CustomException(msg=f"菜单不存在: {missing}")
         await RoleCRUD(self.auth, self.db).set_role_menus_crud(role_objs=roles, menu_objs=menus)
-
-    async def _set_role_depts(self, role_ids: list[int], dept_ids: list[int]) -> None:
-        """替换角色部门关联：service 校验存在性，CRUD 只负责持久化。"""
-        roles = await self._load_roles(role_ids, preload=["depts"])
-        depts = [] if not dept_ids else await DeptCRUD(self.auth, self.db).get_list(search={"id": ("in", dept_ids)})
-        if dept_ids and len(depts) != len(set(dept_ids)):
-            missing = sorted(set(dept_ids) - {d.id for d in depts})
-            raise CustomException(msg=f"部门不存在: {missing}")
-        await RoleCRUD(self.auth, self.db).set_role_depts_crud(role_objs=roles, dept_objs=depts)
 
     async def set_available(self, data: BatchSetAvailable) -> None:
         """设置角色可用状态

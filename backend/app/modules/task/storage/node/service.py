@@ -61,7 +61,6 @@ class StorageNodeService:
             endpoint=source.endpoint,
             scheme=source.scheme,
             region=source.region,
-            path_prefix=source.path_prefix,
             is_secure=source.is_secure,
             implicit_tls=source.implicit_tls,
             encrypt_type=source.encrypt_type,
@@ -149,7 +148,7 @@ class StorageNodeService:
         if exist and exist.id != id:
             raise CustomException(msg="更新失败，存储源名称已存在")
 
-        # 不用 exclude_none：None 表示用户清空可选字段（description/path_prefix/region 等），需落库为 NULL
+        # 不用 exclude_none：None 表示用户清空可选字段（description/region 等），需落库为 NULL
         payload = data.model_dump(exclude_unset=True)
         if payload.get("password"):
             payload["password"] = encrypt_password(payload["password"])

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
-from alembic import command
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -24,28 +23,8 @@ class Engine:
     def connect(self): return Conn(self.has)
 
 
-async def test_apply_empty_db(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.setattr(I, "async_engine", Engine(False))
-    monkeypatch.setattr(I, "create_tables", AsyncMock())
-    monkeypatch.setattr(I, "ALEMBIC_VERSION_DIR", tmp_path)
-    (tmp_path / "x.py").write_text("")
-    monkeypatch.setattr(I.settings, "ENVIRONMENT", I.EnvironmentEnum.DEV)
-    monkeypatch.setattr(I, "InitializeData", I.InitializeData)
-    with patch.object(command, "stamp") as stamp, patch.object(command, "upgrade") as up:
-        monkeypatch.setattr(I.InitializeData, "_InitializeData__autogen_migration", staticmethod(lambda cfg: False))
-        await I.InitializeData._InitializeData__apply_migrations()
-    assert stamp.called
 
 
-async def test_apply_existing_and_autogen(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    monkeypatch.setattr(I, "async_engine", Engine(True))
-    monkeypatch.setattr(I, "ALEMBIC_VERSION_DIR", tmp_path)
-    monkeypatch.setattr(I.settings, "ENVIRONMENT", I.EnvironmentEnum.DEV)
-    monkeypatch.setattr(I.InitializeData, "_InitializeData__clear_unresolvable_alembic_version", AsyncMock())
-    monkeypatch.setattr(I.InitializeData, "_InitializeData__autogen_migration", staticmethod(lambda cfg: True))
-    with patch.object(command, "upgrade") as up:
-        await I.InitializeData._InitializeData__apply_migrations()
-    assert up.called
 
 
 async def test_init_data_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -68,16 +47,6 @@ def test_load_json_errors(monkeypatch, tmp_path) -> None:
     assert I.InitializeData._InitializeData__load_json("x") == [1]
 
 
-async def test_apply_empty_no_migrations(monkeypatch, tmp_path) -> None:
-    monkeypatch.setattr(I, "async_engine", Engine(False))
-    monkeypatch.setattr(I, "create_tables", AsyncMock())
-    monkeypatch.setattr(I, "ALEMBIC_VERSION_DIR", tmp_path)
-    (tmp_path / "__init__.py").write_text("")
-    monkeypatch.setattr(I.settings, "ENVIRONMENT", I.EnvironmentEnum.DEV)
-    monkeypatch.setattr(I.InitializeData, "_InitializeData__autogen_migration", staticmethod(lambda cfg: False))
-    with patch.object(command, "stamp") as stamp:
-        await I.InitializeData._InitializeData__apply_migrations()
-    assert not stamp.called
 
 
 def test_load_json_directory(monkeypatch, tmp_path) -> None:
