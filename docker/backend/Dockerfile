@@ -12,6 +12,7 @@ FROM python:3.12-slim
 LABEL org.opencontainers.image.source="https://github.com/Han-GR/argus-workhub-ai"
 
 ARG DB=mysql
+ARG PIP_INDEX_URL=https://pypi.org/simple
 
 ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
@@ -25,7 +26,7 @@ WORKDIR /home
 COPY ./backend/requirements/ /home/requirements/
 
 # 只装所选数据库的驱动 + 存储与加密依赖
-RUN pip install --no-cache-dir \
+RUN PIP_DEFAULT_TIMEOUT=60 PIP_RETRIES=5 pip install --no-cache-dir --index-url "$PIP_INDEX_URL" \
       -r /home/requirements/base.txt \
       -r /home/requirements/db/${DB}.txt \
       -r /home/requirements/storage.txt

@@ -23,3 +23,5 @@ Redis 开启 AOF（每秒刷盘），健康检查同时验证登录和 `FT.SEARC
 MySQL 的账号密码及建库环境变量只在空数据卷首次初始化时生效。后续修改 `.env` 不会修改库内密码，轮换时需先在 MySQL 中修改对应账号，再更新配置并重建后端容器。源码变更后重新执行 build/start；修改 `.env` 后执行 start 使容器重建，单独 restart 不会载入新环境变量。
 
 前端构建使用 `frontend/web/.env.production.example`，默认域名为 `argus.ruitoolai.com`；前端配置属于公开构建参数，不要填写任何服务端密钥。Nginx 配置及静态产物打包进镜像，运行时仅挂载证书。`bash deploy.sh build` / `start` 仍可分别构建和启动，均只调用 Docker Compose。
+
+如果后端构建下载 Python 包超时，或报 `No matching distribution found`，先检查前文的索引/网络错误。可在 `docker/.env` 设置 `PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/`，然后执行 `docker compose --env-file docker/.env -f docker/docker-compose.yaml build backend` 重试；成功后执行 `up -d`。此配置只影响 Python 依赖安装，与 Docker 的 `registry-mirrors` 分开；保持 HTTPS 校验，不要通过关闭证书验证解决下载失败。
