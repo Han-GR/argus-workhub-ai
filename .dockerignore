@@ -21,3 +21,8 @@ docker/.env
 docker/nginx/ssl
 frontend/web/.env.*
 !frontend/web/.env.*.example
+
+# 始终在构建容器内生成声明，避免本地生成文件掩盖全新构建问题。
+frontend/web/src/types/auto-imports.d.ts
+frontend/web/src/types/components.d.ts
+frontend/web/.eslintrc-auto-import.json

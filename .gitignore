@@ -233,3 +233,7 @@ backend/env/*
 !frontend/web/.env
 # 本地私有档案内容由部署持久化目录管理，不进入版本库。
 /backend/data/archive/
+
+# Vite 构建插件源码，不是 Python 构建产物。
+!frontend/web/build/
+!frontend/web/build/*.ts
