@@ -37,12 +37,7 @@ services:
       retries: 12
       start_period: 30s
   backend:
-    build:
-      context: ../
-      dockerfile: docker/backend/Dockerfile
-      args:
-        DB: mysql
-        PIP_INDEX_URL: "${PIP_INDEX_URL:-https://pypi.org/simple}"
+    image: "registry.cn-beijing.aliyuncs.com/argus-ai/argus-backend:${IMAGE_TAG:?请设置已发布的 IMAGE_TAG}"
     restart: unless-stopped
     environment:
       ENVIRONMENT: prod
@@ -88,9 +83,7 @@ services:
       retries: 5
       start_period: 60s
   nginx:
-    build:
-      context: ../
-      dockerfile: docker/nginx/Dockerfile
+    image: "registry.cn-beijing.aliyuncs.com/argus-ai/argus-web:${IMAGE_TAG:?请设置已发布的 IMAGE_TAG}"
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"

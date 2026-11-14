@@ -85,4 +85,4 @@ Logo 单一来源为 `design/assets`，使用 `node scripts/sync-brand-assets.mj
 
 ## 线上部署
 
-见 [docker/README.md](docker/README.md)。Compose 统一运行 Nginx（含 Web）、后端、MySQL 8.4 和 Redis 8.2（含 Search），数据库仅通过容器内网访问。前端和后端均在 Docker 内安装依赖及构建，服务器无需 Node.js、pnpm 或 Python。执行 `docker compose --env-file docker/.env -f docker/docker-compose.yaml up -d --build` 构建并启动。域名首页跳转 `/web/`。
+见 [docker/README.md](docker/README.md)。本地通过 `bash publish.sh <版本号>` 在 Docker 中构建 AMD64 应用镜像并推送到阿里云北京 ACR；服务器设置相同的 `IMAGE_TAG` 后执行 `bash deploy.sh pull` 和 `bash deploy.sh start`，仅拉取运行，不在服务器编译。Compose 统一管理 Nginx（含 Web）、后端、MySQL 和 Redis Search，数据卷持久化，域名首页跳转 `/web/`。

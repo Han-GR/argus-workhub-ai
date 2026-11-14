@@ -1,4 +1,5 @@
-FROM node:22-bookworm-slim AS web-build
+# 前端只输出静态文件，使用本机构建架构，避免在 Mac 上模拟 AMD64 编译。
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web-build
 
 WORKDIR /build/web
 ENV HUSKY=0
