@@ -52,7 +52,7 @@
               <span class="text-[16px]">菜单授权</span>
               <ElTooltip placement="right">
                 <template #content>
-                  <span>勾选菜单和对应的功能按钮权限</span>
+                  <span>菜单访问与操作权限默认独立勾选。</span>
                 </template>
                 <ElIcon class="ml-1 inline-block cursor-pointer">
                   <QuestionFilled />

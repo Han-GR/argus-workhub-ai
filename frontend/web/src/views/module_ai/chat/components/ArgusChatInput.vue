@@ -217,7 +217,7 @@ const acceptTypes = computed(() => {
 });
 
 const placeholder = computed(() => {
-  return props.isConnected ? "向FA助手发送消息..." : "请先连接到服务器";
+  return props.isConnected ? "向Argus助手发送消息..." : "请先连接到服务器";
 });
 
 const handleFileChange = (uploadFile: UploadFile) => {

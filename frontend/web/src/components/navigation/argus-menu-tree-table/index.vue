@@ -13,7 +13,7 @@
         <template #icon><SwitchIcon /></template>
         {{ isExpanded ? "收起" : "展开" }}
       </ElButton>
-      <ElCheckbox v-model="parentChildLinked">父子联动</ElCheckbox>
+      <ElCheckbox v-model="parentChildLinked">联动选择所有子权限</ElCheckbox>
     </div>
 
     <ElScrollbar class="flex-1" :native="false">
@@ -80,8 +80,6 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
 });
 
-const isLeaf = (t?: number) => t === 3 || t === 4;
-
 type TagType = "primary" | "success" | "warning" | "danger" | "info";
 const NODE_META: Record<number, { type: TagType; label: string }> = {
   1: { type: "warning", label: "目录" },
@@ -94,7 +92,7 @@ const nodeMeta = (n: MenuNode) => NODE_META[n.type ?? 2] ?? NODE_META[2];
 const treeRef = ref<any>(null);
 const filterText = ref("");
 const isExpanded = ref(false);
-const parentChildLinked = ref(true);
+const parentChildLinked = ref(false);
 const expandedKeys = shallowRef<Set<number>>(new Set());
 
 const getNodesMap = () => treeRef.value?.store?.nodesMap as Record<number, TreeNode> | undefined;
@@ -148,18 +146,6 @@ function expandMatchingNodes(value: string) {
   });
 }
 
-function recomputeNode(p: TreeNode) {
-  let fully = 0;
-  let hasIndeterminate = false;
-  for (const c of p.childNodes) {
-    if (c.checked) fully++;
-    else if (c.indeterminate) hasIndeterminate = true;
-  }
-  const total = p.childNodes.length;
-  p.checked = fully === total;
-  p.indeterminate = (fully > 0 || hasIndeterminate) && !p.checked;
-}
-
 function initFromProps() {
   nextTick(() => {
     const tree = treeRef.value;
@@ -167,20 +153,9 @@ function initFromProps() {
     if (!tree || !nodesMap) return;
 
     for (const node of Object.values(nodesMap)) {
-      node.checked = false;
-      node.indeterminate = false;
       node.expanded = expandedKeys.value.has(node.data.id ?? -1);
     }
-
-    const affected = new Set<TreeNode>();
-    for (const id of props.checkedIds ?? []) {
-      const node = tree.getNode(id) as TreeNode | null;
-      if (!node || !isLeaf(node.data.type)) continue;
-      node.checked = true;
-      for (let p = node.parent; p; p = p.parent) affected.add(p);
-    }
-
-    for (const p of affected) recomputeNode(p);
+    tree.setCheckedKeys(props.checkedIds ?? []);
   });
 }
 

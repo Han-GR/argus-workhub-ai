@@ -1,81 +1,83 @@
 import { request } from "@utils";
 
+export type DocumentVisibility = "company" | "department";
+export type DocumentView = "all" | "company" | "department" | "mine";
 export interface KnowledgeDocument {
   id: string;
   name: string;
   chunk_count: number;
   created_time: string;
   needs_reindex: boolean;
+  visibility: DocumentVisibility;
+  dept_id: number | null;
+  dept_name: string | null;
+  uploaded_by: number | null;
+  uploader_name: string | null;
+  can_edit: boolean;
+  can_query: boolean;
 }
-
 export interface KnowledgeAnswer {
   answer: string;
   sources: { number: number; document_id: string; name: string; text: string; score: number }[];
 }
-
-const url = "/ai/knowledge";
-export interface KnowledgeBase {
-  id: string;
-  name: string;
-  dept_id: number | null;
-  dept_name: string | null;
-  can_manage: boolean;
-}
-export interface KnowledgeCatalog {
-  bases: KnowledgeBase[];
-  departments: { id: number; name: string }[];
-  can_create: boolean;
-  can_create_company: boolean;
+export interface KnowledgeWorkspace {
   can_configure: boolean;
+  department: { id: number; name: string } | null;
 }
-
+const url = "/ai/knowledge";
 export const KnowledgeAPI = {
-  catalog() {
-    return request<ApiResponse<KnowledgeCatalog>>({ url: `${url}/bases`, method: "get" });
+  workspace() {
+    return request<ApiResponse<KnowledgeWorkspace>>({ url: `${url}/workspace`, method: "get" });
   },
-  createBase(data: { name: string; dept_id: number | null }) {
-    return request<ApiResponse<{ id: string }>>({ url: `${url}/bases`, method: "post", data });
-  },
-  deleteBase(id: string) {
-    return request<ApiResponse<null>>({
-      url: `${url}/bases/${encodeURIComponent(id)}`,
-      method: "delete",
-    });
-  },
-  list(baseId: string) {
+  list(view: DocumentView = "all") {
     return request<ApiResponse<KnowledgeDocument[]>>({
-      url: `${url}/bases/${encodeURIComponent(baseId)}/documents`,
+      url: `${url}/documents`,
       method: "get",
+      params: { view },
     });
   },
-  upload(baseId: string, file: File) {
+  upload(file: File, visibility: DocumentVisibility) {
     const data = new FormData();
     data.append("file", file);
+    data.append("visibility", visibility);
     return request<ApiResponse<KnowledgeDocument>>({
-      url: `${url}/bases/${encodeURIComponent(baseId)}/documents`,
+      url: `${url}/documents`,
       method: "post",
       data,
       headers: { "Content-Type": "multipart/form-data" },
       timeout: 200000,
     });
   },
-  reindex(baseId: string, id: string) {
+  update(id: string, name: string, visibility: DocumentVisibility, file?: File) {
+    const data = new FormData();
+    data.append("name", name);
+    data.append("visibility", visibility);
+    if (file) data.append("file", file);
     return request<ApiResponse<KnowledgeDocument>>({
-      url: `${url}/bases/${encodeURIComponent(baseId)}/documents/${encodeURIComponent(id)}/reindex`,
+      url: `${url}/documents/${encodeURIComponent(id)}`,
+      method: "put",
+      data,
+      headers: { "Content-Type": "multipart/form-data" },
+      timeout: 200000,
+    });
+  },
+  reindex(id: string) {
+    return request<ApiResponse<KnowledgeDocument>>({
+      url: `${url}/documents/${encodeURIComponent(id)}/reindex`,
       method: "post",
       timeout: 200000,
     });
   },
-  remove(baseId: string, id: string) {
+  remove(id: string) {
     return request<ApiResponse<null>>({
-      url: `${url}/bases/${encodeURIComponent(baseId)}/documents/${encodeURIComponent(id)}`,
+      url: `${url}/documents/${encodeURIComponent(id)}`,
       method: "delete",
       timeout: 40000,
     });
   },
-  ask(baseId: string, question: string) {
+  ask(question: string) {
     return request<ApiResponse<KnowledgeAnswer>>({
-      url: `${url}/bases/${encodeURIComponent(baseId)}/ask`,
+      url: `${url}/ask`,
       method: "post",
       data: { question },
       timeout: 160000,
