@@ -28,8 +28,7 @@ COPY ./backend/requirements/ /home/requirements/
 RUN pip install --no-cache-dir \
       -r /home/requirements/base.txt \
       -r /home/requirements/db/${DB}.txt \
-      -r /home/requirements/storage.txt \
-      -i https://pypi.tuna.tsinghua.edu.cn/simple
+      -r /home/requirements/storage.txt
 
 # 应用代码（backend/.venv、logs、缓存、真实 .env.* 由根 .dockerignore 排除）
 COPY ./backend/ /home/

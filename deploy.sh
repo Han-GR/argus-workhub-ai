@@ -5,13 +5,7 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 compose() { docker compose --env-file docker/.env -f docker/docker-compose.yaml "$@"; }
 case "${1:-help}" in
-  build)
-    (cd frontend/web && pnpm build)
-    mkdir -p docker/nginx/web/dist backend/dist
-    rsync -a --delete frontend/web/dist/ docker/nginx/web/dist/
-    rsync -a --delete frontend/web/dist/ backend/dist/
-    compose build backend
-    ;;
+  build) compose build ;;
   start) compose up -d ;;
   stop) compose stop ;;
   restart) compose restart ;;

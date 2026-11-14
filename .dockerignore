@@ -16,3 +16,8 @@ backend/data/*
 !backend/data/ip2region
 !backend/data/ip2region/**
 docker/.env
+
+# 证书只在运行时挂载，前端构建使用已提交的生产配置模板。
+docker/nginx/ssl
+frontend/web/.env.*
+!frontend/web/.env.*.example
