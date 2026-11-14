@@ -56,7 +56,7 @@ beforeEach(() => {
 });
 
 describe("knowledge workspace", () => {
-  it("lets readers ask while hiding all document maintenance actions", async () => {
+  it("lets members upload while hiding maintenance for other uploaders", async () => {
     vi.mocked(KnowledgeAPI.list).mockResolvedValue(ok([{ ...document, can_edit: false }]) as never);
     const wrapper = render();
     await flushPromises();
@@ -64,7 +64,7 @@ describe("knowledge workspace", () => {
     expect(buttons).toContain("上传文档");
     expect(buttons).not.toContain("重建索引");
     expect(buttons).not.toContain("删除");
-    expect(buttons).toContain("提问");
+    expect(buttons).not.toContain("提问");
     wrapper.unmount();
   });
 
@@ -112,39 +112,6 @@ describe("knowledge workspace", () => {
     await click(wrapper, "上传");
     expect(KnowledgeAPI.upload).toHaveBeenCalledWith(file, "department");
     expect(KnowledgeAPI.list).toHaveBeenCalledTimes(2);
-    wrapper.unmount();
-  });
-
-  it("trims questions, renders source text safely and clears old answers on failure", async () => {
-    vi.mocked(KnowledgeAPI.ask).mockResolvedValueOnce(
-      ok({
-        answer: "年假为五天 [1]",
-        sources: [
-          {
-            number: 1,
-            document_id: "doc-1",
-            name: document.name,
-            text: "<script>alert(1)</script>",
-            score: 0.9,
-          },
-        ],
-      }) as never
-    );
-    const wrapper = render();
-    await flushPromises();
-    await wrapper.get("textarea").setValue("   ");
-    await click(wrapper, "提问");
-    expect(KnowledgeAPI.ask).not.toHaveBeenCalled();
-    await wrapper.get("textarea").setValue(" 年假多少天？ ");
-    await click(wrapper, "提问");
-    expect(KnowledgeAPI.ask).toHaveBeenCalledWith("年假多少天？");
-    expect(wrapper.text()).toContain("年假为五天 [1]");
-    expect(wrapper.text()).toContain("<script>alert(1)</script>");
-    expect(wrapper.find("script").exists()).toBe(false);
-    vi.mocked(KnowledgeAPI.ask).mockRejectedValueOnce(new Error("offline"));
-    await click(wrapper, "提问");
-    expect(wrapper.text()).not.toContain("年假为五天 [1]");
-    expect(wrapper.text()).toContain("提问失败");
     wrapper.unmount();
   });
 

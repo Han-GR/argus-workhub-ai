@@ -28,6 +28,7 @@ it("opens the shared document workspace for ordinary members without admin contr
   const wrapper = render();
   await flushPromises();
   expect(wrapper.get('[data-testid="documents"]').text()).toBe("人力资源部门");
+  expect(wrapper.get("h1").text()).toBe("文档管理");
   expect(wrapper.text()).not.toContain("向量模型配置");
   expect(wrapper.text()).not.toContain("新建知识库");
   wrapper.unmount();

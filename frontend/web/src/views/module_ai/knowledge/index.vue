@@ -3,8 +3,8 @@
     <header class="page-heading">
       <div>
         <span class="eyebrow">TEAM KNOWLEDGE</span>
-        <h1>知识库</h1>
-        <p>每个人都能分享资料，每个答案都有可核对的来源。</p>
+        <h1>文档管理</h1>
+        <p>上传团队资料，选择共享范围，并管理自己上传的文件。</p>
       </div>
       <ElButton v-if="workspace?.can_configure" @click="configVisible = true"
         >向量模型配置</ElButton
@@ -37,7 +37,7 @@ import { ElButton } from "element-plus";
 import { KnowledgeAPI, type KnowledgeWorkspace } from "@/api/module_ai/knowledge";
 import KnowledgeDocuments from "./components/KnowledgeDocuments.vue";
 import EmbeddingConfig from "./components/EmbeddingConfig.vue";
-defineOptions({ name: "Knowledge" });
+defineOptions({ name: "KnowledgeDocuments" });
 const workspace = ref<KnowledgeWorkspace>();
 const loading = ref(false);
 const loadFailed = ref(false);
