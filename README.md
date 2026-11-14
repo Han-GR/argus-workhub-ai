@@ -85,4 +85,4 @@ Logo 单一来源为 `design/assets`，使用 `node scripts/sync-brand-assets.mj
 
 ## 线上部署
 
-见 [docker/README.md](docker/README.md)。本地通过 `bash publish.sh <版本号>` 在 Docker 中构建 AMD64 应用镜像并推送到阿里云北京 ACR；服务器设置相同的 `IMAGE_TAG` 后执行 `bash deploy.sh pull` 和 `bash deploy.sh start`，仅拉取运行，不在服务器编译。Compose 统一管理 Nginx（含 Web）、后端、MySQL 和 Redis Search，数据卷持久化，域名首页跳转 `/web/`。
+见 [docker/README.md](docker/README.md)。本地通过 `bash publish.sh <版本号>` 在 Docker 中构建 AMD64 应用镜像并推送到阿里云北京 ACR；服务器设置相同的 `IMAGE_TAG` 后执行 `bash deploy.sh pull` 和 `bash deploy.sh start`，仅拉取运行，不在服务器编译。Compose 统一管理 Nginx（含 Web）、后端、MySQL、Redis Search 和独立的 Cloudflare Tunnel，数据卷持久化；不占用宿主机 80/443，也无需服务器证书，域名首页跳转 `/web/`。

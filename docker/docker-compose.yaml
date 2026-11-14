@@ -85,13 +85,25 @@ services:
   nginx:
     image: "registry.cn-beijing.aliyuncs.com/argus-ai/argus-web:${IMAGE_TAG:?请设置已发布的 IMAGE_TAG}"
     restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-    volumes:
-      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       backend:
+        condition: service_healthy
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/web/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: "${CLOUDFLARE_TUNNEL_TOKEN:?请设置 Argus 专用 Tunnel Token}"
+    depends_on:
+      nginx:
         condition: service_healthy
     networks:
       - app_network
