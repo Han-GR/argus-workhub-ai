@@ -5,7 +5,14 @@
         <h3 id="documents-title">
           文档 <span>{{ documents.length }}</span>
         </h3>
-        <ElButton :disabled="mutating || loading" @click="loadDocuments">刷新</ElButton>
+        <div class="toolbar-actions">
+          <ElButton :icon="Refresh" :disabled="mutating || loading" @click="loadDocuments"
+            >刷新</ElButton
+          >
+          <ElButton type="primary" :icon="Upload" :disabled="mutating" @click="openUpload"
+            >上传文档</ElButton
+          >
+        </div>
       </div>
       <ElTabs v-model="view" @tab-change="loadDocuments">
         <ElTabPane label="全部可见" name="all" />
@@ -13,10 +20,6 @@
         <ElTabPane label="本部门" name="department" />
         <ElTabPane label="我上传的" name="mine" />
       </ElTabs>
-      <ElButton type="primary" :disabled="mutating" @click="openUpload">上传文档</ElButton>
-      <p class="hint">
-        TXT、Markdown、文字 PDF · 每份不超过 2 MB<br />PDF 最多 50 页，提取文字不超过 60 KB。
-      </p>
       <ElAlert v-if="mutationError" :title="mutationError" type="error" :closable="false" />
       <p v-if="mutating" role="status" class="hint">正在处理文档，请稍候…</p>
       <div v-if="loadFailed" class="empty-state" role="alert">
@@ -24,13 +27,18 @@
         <ElButton @click="loadDocuments">重试</ElButton>
       </div>
       <p v-else-if="loading" role="status" class="empty-state">正在加载文档…</p>
-      <p v-else-if="!documents.length" class="empty-state">
-        此范围暂无文档，你可以上传资料并选择共享范围。
-      </p>
+      <div v-else-if="!documents.length" class="empty-state">
+        <div class="empty-icon"><FolderOpened aria-hidden="true" /></div>
+        <h3>还没有可见的文档</h3>
+        <p>把团队的经验和资料放在这里，让每一次提问都有据可查。</p>
+        <ElButton type="primary" plain :disabled="mutating" @click="openUpload"
+          >上传第一份文档</ElButton
+        >
+      </div>
       <ul v-else class="document-list">
         <li v-for="doc in documents" :key="doc.id" class="document-item">
           <div class="document-heading">
-            <strong>{{ doc.name }}</strong>
+            <strong class="document-name"><Document aria-hidden="true" />{{ doc.name }}</strong>
             <ElTag :type="doc.needs_reindex ? 'warning' : 'success'" size="small">{{
               doc.needs_reindex ? "需要重建" : doc.can_query ? "可检索" : "不在当前问答范围"
             }}</ElTag>
@@ -51,6 +59,9 @@
           </div>
         </li>
       </ul>
+      <footer class="panel-footer">
+        <span>支持 TXT、Markdown、文字 PDF · 单份不超过 2 MB</span><span>仅上传者可编辑和删除</span>
+      </footer>
     </section>
 
     <ElDialog
@@ -93,6 +104,9 @@
             @change="selectFile"
           />
         </ElFormItem>
+        <p class="hint">
+          支持 TXT、Markdown、文字 PDF，每份不超过 2 MB。PDF 最多 50 页，提取文字不超过 60 KB。
+        </p>
         <ElAlert v-if="fileError" :title="fileError" type="error" :closable="false" />
         <ElAlert
           v-if="saveError"
@@ -117,6 +131,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
+import { Document, FolderOpened, Refresh, Upload } from "@element-plus/icons-vue";
 import {
   ElAlert,
   ElButton,
@@ -265,59 +280,164 @@ onMounted(loadDocuments);
 .knowledge-workspace {
   color: var(--el-text-color-primary);
 }
-.section-heading,
-.document-heading {
+.documents-panel {
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 16px;
+}
+.section-heading {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
   justify-content: space-between;
+  padding: 24px 28px 12px;
+}
+.section-heading h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.section-heading h3 span {
+  display: inline-block;
+  min-width: 24px;
+  padding: 2px 7px;
+  margin-left: 8px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border-radius: 6px;
+}
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+}
+.toolbar-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+:deep(.el-tabs__header) {
+  padding: 0 28px;
+  margin: 0;
+}
+:deep(.el-tabs__nav-wrap::after) {
+  height: 1px;
+  background: var(--el-border-color-lighter);
+}
+:deep(.el-tabs__item) {
+  height: 50px;
 }
 .hint {
   color: var(--el-text-color-secondary);
   font-size: 13px;
   line-height: 1.8;
 }
-.section-heading {
-  margin-bottom: 16px;
-}
-.section-heading h3 {
-  margin: 0;
-  font-size: 16px;
-}
-.section-heading h3 span {
-  margin-left: 8px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  font-weight: 400;
-}
 .document-list {
-  padding: 0;
-  margin: 20px 0 0;
+  padding: 0 28px;
+  margin: 0;
   list-style: none;
 }
 .document-item {
-  padding: 20px 0;
-  border-top: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.document-item:last-child {
+  border-bottom: 0;
 }
 .document-heading {
-  align-items: flex-start;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
 }
-.document-heading strong {
+.document-name {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
   overflow-wrap: anywhere;
   font-size: 14px;
+  font-weight: 600;
+}
+.document-name svg {
+  flex: 0 0 20px;
+  width: 20px;
+  color: var(--el-color-primary);
 }
 .document-heading :deep(.el-tag) {
   flex-shrink: 0;
+}
+.document-item .hint {
+  margin: 10px 0 0 32px;
 }
 .document-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 8px;
 }
 .empty-state {
-  padding: 40px 12px;
+  padding: 64px 24px 72px;
+  text-align: center;
   color: var(--el-text-color-secondary);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
+}
+.empty-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  border-radius: 20px;
+}
+.empty-icon svg {
+  width: 34px;
+  height: 34px;
+}
+.empty-state h3 {
+  margin: 0 0 8px;
+  color: var(--el-text-color-primary);
+  font-size: 17px;
+  font-weight: 600;
+}
+.empty-state p {
+  margin: 0 0 24px;
+}
+.panel-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: var(--el-fill-color-lighter);
+  border-top: 1px solid var(--el-border-color-lighter);
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (width <= 600px) {
+  .section-heading {
+    padding: 20px 16px 8px;
+    flex-wrap: wrap;
+  }
+  :deep(.el-tabs__header) {
+    padding: 0 16px;
+  }
+  .document-list {
+    padding: 0 16px;
+  }
+  .document-heading {
+    align-items: flex-start;
+  }
+  .panel-footer {
+    padding: 16px;
+  }
+  .empty-state {
+    padding: 44px 16px;
+  }
 }
 </style>

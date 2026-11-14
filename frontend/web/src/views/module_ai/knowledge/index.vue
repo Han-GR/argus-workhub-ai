@@ -2,7 +2,7 @@
   <div class="knowledge-page">
     <header class="page-heading">
       <div>
-        <span class="eyebrow">TEAM KNOWLEDGE</span>
+        <span class="eyebrow">团队知识库 / 资料</span>
         <h1>文档管理</h1>
         <p>上传团队资料，选择共享范围，并管理自己上传的文件。</p>
       </div>
@@ -62,7 +62,9 @@ onMounted(loadWorkspace);
 </script>
 <style scoped lang="scss">
 .knowledge-page {
-  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px;
   color: var(--el-text-color-primary);
 }
 .page-heading {
@@ -77,11 +79,11 @@ onMounted(loadWorkspace);
   color: var(--el-color-primary);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 .page-heading h1 {
   margin: 8px 0;
-  font-size: 28px;
+  font-size: 26px;
 }
 .page-heading p {
   font-size: 13px;
