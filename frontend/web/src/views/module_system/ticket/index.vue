@@ -2,11 +2,10 @@
   <div class="task-page">
     <header class="task-header">
       <div>
-        <h2>任务协同</h2>
+        <h2>我的任务</h2>
         <p>明确负责人和交付时间，一起推进团队工作。</p>
       </div>
       <div class="flex flex-wrap gap-2 justify-end">
-        <ArgusMeetingTasks v-if="canAiCreate" @created="fetchTasks" />
         <ElButton v-hasPerm="['module_system:ticket:create']" type="primary" @click="openEditor()">
           <ArgusSvgIcon icon="ri:add-line" class="mr-1" />新建任务
         </ElButton>
@@ -329,7 +328,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus";
 import DOMPurify from "dompurify";
 import { useRoute, useRouter } from "vue-router";
@@ -342,19 +341,12 @@ import TicketAPI, {
   type TicketCreateForm,
   type TicketCommentTable,
 } from "@/api/module_system/ticket";
-import ArgusMeetingTasks from "./components/ArgusMeetingTasks.vue";
 import ArgusCardGrid from "@/components/cards/argus-card-grid/index.vue";
 import ArgusWangEditor from "@/components/forms/argus-wang-editor/index.vue";
 import ArgusFileUpload from "@/components/forms/argus-file-upload/index.vue";
 
 defineOptions({ name: "ModuleTicket" });
 const userStore = useUserStore();
-const canAiCreate = computed(
-  () =>
-    userStore.info.is_superuser ||
-    (userStore.prems.includes("module_system:ticket:create") &&
-      userStore.prems.includes("module_ai:chat:query"))
-);
 const statuses = ["待开始", "进行中", "已完成", "已取消"];
 const priorities = ["低", "普通", "高", "紧急"];
 const categories = [
@@ -368,7 +360,7 @@ const total = ref(0);
 const pageNo = ref(1);
 const pageSize = ref(12);
 const loading = ref(false);
-const view = ref<"all" | "assigned" | "created">("all");
+const view = ref<"all" | "assigned" | "created">("assigned");
 const filters = reactive<{ title: string; status?: number | ""; priority?: number | "" }>({
   title: "",
 });
@@ -585,7 +577,13 @@ watch(detailVisible, (visible) => {
     void router.replace({ path: route.path, query });
   }
 });
-onMounted(fetchTasks);
+watch(
+  () => route.path,
+  (path) => {
+    if (path === "/system/ticket") void fetchTasks();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>
