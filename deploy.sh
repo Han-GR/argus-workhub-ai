@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Argus Web + 后端部署助手。在部署服务器运行；MySQL/Redis 使用现有服务。
+# Argus 部署助手。在部署服务器运行，统一管理 Web、后端、MySQL 和 Redis。
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
