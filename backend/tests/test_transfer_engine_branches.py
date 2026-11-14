@@ -34,7 +34,7 @@ def test_local_dir_helpers(tmp_path) -> None:
     p = d / "a"
     task = SimpleNamespace(source_type="local", source_path=str(p))
     E._remove_local_temp(task)
-    assert not p.exists()
+    assert p.exists()  # 非上传接口生成的本地文件不自动删除。
     E._prepare_local_dirs([str(tmp_path / "x" / "a"), str(tmp_path / "x" / "b")])
     assert (tmp_path / "x").is_dir()
 
@@ -62,6 +62,7 @@ async def test_build_config(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 async def test_run_step_errors_and_success(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
     class DB:
         async def commit(self): pass
     class Adapter:
@@ -83,7 +84,7 @@ async def test_run_step_errors_and_success(monkeypatch: pytest.MonkeyPatch, tmp_
         base.update(kw); return SimpleNamespace(**base)
     t = task(); s = step()
     assert await E._run_step(DB(), t, s) is False
-    f = tmp_path / "a.txt"; f.write_text("hello")
+    f = tmp_path / "transfer_upload_test.txt"; f.write_text("hello")
     t2 = task(); s2 = step(source_path=str(f))
     assert await E._run_step(DB(), t2, s2) is True
     assert adapter.uploaded and s2.status == "success"
@@ -125,7 +126,7 @@ async def test_run_step_remote_and_dir(monkeypatch: pytest.MonkeyPatch, tmp_path
     d = tmp_path / "localdir"; d.mkdir(); (d / "a.txt").write_text("hi")
     monkeypatch.setattr(E, "_is_dir_path", lambda a, p: _false())
     t2 = task(); s2 = step(source_id=None, source_path=str(d), target_path="out")
-    assert await E._run_step(DB(), t2, s2) is True
+    assert await E._run_step(DB(), t2, s2) is False  # 不接受任意服务端目录作为本地上传。
     t3 = task(); s3 = step(source_id=None, source_path=str(tmp_path / "missing"))
     assert await E._run_step(DB(), t3, s3) is False
 

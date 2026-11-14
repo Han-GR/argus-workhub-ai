@@ -21,9 +21,16 @@ class LocalStorageAdapter(BaseStorageAdapter):
 
         remote_path 为相对存储真根（host 根目录）的路径，直接 join 到 root 下。
         """
-        if ".." in remote_path:
-            raise CustomException(msg="本地存储不允许路径穿越（..）")
-        return os.path.join(self.root, remote_path.lstrip("/"))
+        root = os.path.realpath(self.root)
+        current = root
+        for part in remote_path.lstrip("/").split("/"):
+            current = os.path.join(current, part)
+            if os.path.islink(current):
+                raise CustomException(msg="本地存储不允许通过符号链接访问文件")
+        target = os.path.realpath(os.path.join(root, remote_path.lstrip("/")))
+        if os.path.commonpath([root, target]) != root:
+            raise CustomException(msg="本地存储不允许路径穿越或越界符号链接")
+        return target
 
     def _sync_test_connection(self) -> bool:
         if not self.root or not os.path.isdir(self.root):

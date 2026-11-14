@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
+from app.modules.task.storage.browse.service import StorageFileService
 from app.modules.task.storage.node.service import StorageNodeService
 from app.modules.task.storage.transfer.engine import _broadcast, execute_transfer_task
 from app.modules.task.storage.transfer.registry import transfer_task_registry
@@ -26,6 +27,7 @@ from .schema import (
     TransferTaskOutSchema,
     TransferTaskQueryParam,
     TransferTaskStoreSchema,
+    is_managed_transfer_temp,
 )
 
 
@@ -114,10 +116,19 @@ class StorageTransferService:
             StorageTransferService._BG_TASKS.add(bg_task)
             bg_task.add_done_callback(StorageTransferService._BG_TASKS.discard)
 
+    async def _check_archive_transfer_access(self):
+        service = StorageFileService(self.auth, self.db)
+        await service._context()
+        if not {"module_task:storage:browse:manage_all", "module_task:storage:node:manage"} <= service._permissions:
+            raise CustomException(msg="原始传输需要存储配置及跨部门档案管理权限，请使用文件管理中的复制或移动")
+
     # ── 创建 ────────────────────────────────────────────────────────
 
     async def create(self, data: TransferTaskCreateSchema) -> int:
         """创建远端源传输任务。"""
+        if data.source_type != "remote":
+            raise CustomException(msg="本地源必须通过文件上传接口创建")
+        await self._check_archive_transfer_access()
         source_service = StorageNodeService(self.auth, self.db)
         if data.source_type == "remote":
             await source_service.get_active_source(data.source_id)
@@ -126,6 +137,7 @@ class StorageTransferService:
 
     async def create_local(self, data: TransferTaskCreateSchema, file: UploadFile) -> int:
         """创建本地源传输任务：文件保存到服务端临时目录，执行完毕后自动清理。"""
+        await self._check_archive_transfer_access()
         if not file or not file.filename:
             raise CustomException(msg="请选择要上传的文件")
         await self._validate_targets(data.targets)
@@ -209,7 +221,7 @@ class StorageTransferService:
     @staticmethod
     def _remove_local_temp(task: StorageTransferTaskModel) -> None:
         """清理本地源任务的临时文件（幂等：文件不存在时静默忽略）。"""
-        if task.source_type == "local" and task.source_path:
+        if task.source_type == "local" and task.source_path and is_managed_transfer_temp(task.source_path):
             try:
                 os.unlink(task.source_path)
             except OSError:

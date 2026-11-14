@@ -16,10 +16,11 @@ from app.modules.task.storage.core.base import (
     StorageProtocolDefSchema,
 )
 
+from .permissions import require_storage_config_admin
 from .schema import StorageNodeCreateSchema, StorageNodeOutSchema, StorageNodeQueryParam, StorageNodeTestSchema, StorageNodeUpdateSchema
 from .service import StorageNodeService
 
-StorageNodeRouter = APIRouter(route_class=OperationLogRoute, prefix="/storage/node", tags=["节点管理"])
+StorageNodeRouter = APIRouter(route_class=OperationLogRoute, prefix="/storage/node", tags=["节点管理"], dependencies=[Depends(require_storage_config_admin)])
 
 
 @StorageNodeRouter.get("/protocols", summary="查询支持的存储协议", response_model=ResponseSchema[list[StorageProtocolDefSchema]])

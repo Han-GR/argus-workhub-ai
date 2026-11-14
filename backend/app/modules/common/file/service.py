@@ -53,6 +53,8 @@ class FileService:
         # resolve() 会规范化路径并解析符号链接；is_relative_to 做目录包含判断，
         # 避免 startswith 字符串前缀被同前缀兄弟目录（如 uploads_private）绕过
         abs_path = Path(file_path).resolve()
+        if "_argus_archive" in [part.casefold() for part in abs_path.parts]:
+            raise CustomException(msg="档案文件请通过文件管理下载")
         if not abs_path.is_relative_to(upload_root):
             logger.error(f"路径不在上传目录内: {file_path}")
             raise CustomException(msg="非法的文件路径")

@@ -1,5 +1,5 @@
 import os
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, File, Form, Query, Security, UploadFile
 from fastapi.responses import JSONResponse
@@ -10,6 +10,7 @@ from app.core.base_schema import AuthSchema
 from app.core.dependencies import AuthPermission, db_getter
 from app.core.router_class import OperationLogRoute
 from app.modules.task.storage.core.base import StorageObject, StoragePage
+from app.modules.task.storage.node.permissions import require_storage_config_admin
 
 from .schema import StoragePathCreateSchema, StoragePathResultSchema, StorageUploadResultSchema
 from .service import StorageFileService
@@ -33,9 +34,10 @@ async def upload_storage_file_controller(
     source_id: Annotated[int | None, Form(description="存储源ID（不传使用默认存储源）")] = None,
     remote_path: Annotated[str | None, Form(description="远端目录路径（不传自动生成文件名）")] = None,
     bucket: Annotated[str | None, Form(description="存储桶（对象存储多桶浏览用，可选）")] = None,
+    visibility: Annotated[Literal["private", "department", "company"], Form()] = "private",
 ) -> JSONResponse:
     result: StorageUploadResultSchema = await StorageFileService(auth, db).upload(
-        source_id=source_id, file=file, remote_path=remote_path, bucket=bucket
+        source_id=source_id, file=file, remote_path=remote_path, bucket=bucket, visibility=visibility
     )
     return SuccessResponse(data=result, msg="上传文件成功")
 
@@ -110,9 +112,10 @@ async def list_storage_buckets_controller(
     return SuccessResponse(data=result, msg="查询桶列表成功")
 
 
-@StorageBrowseRouter.post("/create-bucket", summary="创建存储桶（对象存储）", response_model=ResponseSchema[None])
+@StorageBrowseRouter.post("/create-bucket", summary="创建存储桶（对象存储）", response_model=ResponseSchema[None],
+                          dependencies=[Depends(require_storage_config_admin)])
 async def create_storage_bucket_controller(
-    auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:storage:browse:update"]))],
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:storage:node:create"]))],
     db: Annotated[AsyncSession, Depends(db_getter)],
     bucket: Annotated[str, Body(description="桶名（COS 需带 -appid 后缀）")],
     source_id: Annotated[int | None, Body(description="存储源ID（不传使用默认存储源）")] = None,
@@ -165,8 +168,9 @@ async def mkdir_storage_file_controller(
     source_id: Annotated[int | None, Body(description="存储源ID（不传使用默认存储源）")] = None,
     remote_dir: Annotated[str, Body(description="目录路径")] = "",
     bucket: Annotated[str | None, Body(description="存储桶（对象存储多桶浏览用，可选）")] = None,
+    visibility: Annotated[Literal["private", "department", "company"], Body()] = "private",
 ) -> JSONResponse:
-    result: StoragePathCreateSchema = await StorageFileService(auth, db).mkdir(source_id=source_id, remote_dir=remote_dir, bucket=bucket)
+    result: StoragePathCreateSchema = await StorageFileService(auth, db).mkdir(source_id=source_id, remote_dir=remote_dir, bucket=bucket, visibility=visibility)
     return SuccessResponse(data=result, msg="新建目录成功")
 
 
@@ -183,3 +187,24 @@ async def share_storage_file_controller(
         source_id=source_id, remote_path=remote_path, expire=expire, bucket=bucket
     )
     return SuccessResponse(data=result, msg="生成分享链接成功")
+
+
+@StorageBrowseRouter.get("/sources", summary="可用档案存储源摘要")
+async def archive_sources(
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:storage:browse:query"]))],
+    db: Annotated[AsyncSession, Depends(db_getter)],
+):
+    return SuccessResponse(data=await StorageFileService(auth, db).sources())
+
+
+@StorageBrowseRouter.put("/visibility", summary="修改共享范围")
+async def archive_visibility(
+    auth: Annotated[AuthSchema, Security(AuthPermission(["module_task:storage:browse:update"]))],
+    db: Annotated[AsyncSession, Depends(db_getter)],
+    remote_path: Annotated[str, Body()],
+    visibility: Annotated[Literal["private", "department", "company"], Body()],
+    source_id: Annotated[int | None, Body()] = None,
+    bucket: Annotated[str | None, Body()] = None,
+):
+    await StorageFileService(auth, db).set_visibility(source_id, remote_path, visibility, bucket)
+    return SuccessResponse(msg="共享范围已更新")

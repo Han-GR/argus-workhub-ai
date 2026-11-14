@@ -6,7 +6,7 @@ from sqlalchemy import func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.enums import EnvironmentEnum
-from app.config.path_conf import ALEMBIC_VERSION_DIR, BASE_DIR, SCRIPT_DIR, STATIC_DIR
+from app.config.path_conf import ALEMBIC_VERSION_DIR, BASE_DIR, SCRIPT_DIR
 from app.config.setting import settings
 from app.core.base_model import MappedBase
 from app.core.database import async_db_session, async_engine, create_tables
@@ -50,8 +50,8 @@ class InitializeData:
         async with async_db_session() as session, session.begin():
             await self.__init_data(session)
 
-        # 内置本地存储源的根目录（种子节点 host 指向 static/upload），保证开箱可浏览
-        (STATIC_DIR / "upload").mkdir(parents=True, exist_ok=True)
+        # 档案文件使用独立私有目录，公共上传仍由各自上传接口创建目录。
+        (BASE_DIR / "data" / "archive").mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     async def __apply_migrations() -> None:

@@ -1,6 +1,7 @@
 """Argus 应用工厂：唯一的应用构建与生命周期定义点。"""
 
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI
@@ -80,10 +81,19 @@ def register_routers(app: FastAPI) -> None:
     check_route_conflicts(app)
 
 
+class ArchiveSafeStaticFiles(StaticFiles):
+    def lookup_path(self, path):
+        full_path, stat = super().lookup_path(path)
+        # 同时拦截真实路径，防止通过静态目录中的符号链接绕过档案鉴权。
+        if "_argus_archive" in [part.casefold() for part in Path(full_path).parts]:
+            return "", None
+        return full_path, stat
+
+
 def register_static(app: FastAPI) -> None:
     """注册静态文件路由。"""
     path_conf.STATIC_DIR.mkdir(parents=True, exist_ok=True)
-    app.mount(path=settings.STATIC_URL, app=StaticFiles(directory=path_conf.STATIC_DIR), name=path_conf.STATIC_DIR.name)
+    app.mount(path=settings.STATIC_URL, app=ArchiveSafeStaticFiles(directory=path_conf.STATIC_DIR), name=path_conf.STATIC_DIR.name)
 
 
 def register_docs(app: FastAPI) -> None:

@@ -231,3 +231,5 @@ docs/*
 backend/env/*
 !backend/env/.env.example
 !frontend/web/.env
+# 本地私有档案内容由部署持久化目录管理，不进入版本库。
+/backend/data/archive/

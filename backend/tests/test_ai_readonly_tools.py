@@ -31,11 +31,11 @@ async def test_storage_files_unknown_source_returns_available_names(monkeypatch:
         def __init__(self, auth: Any, db: Any) -> None:
             pass
 
-        async def get_list(self) -> list[SimpleNamespace]:
-            return [SimpleNamespace(id=1, name="node-a", protocol="sftp", status=0, is_default=False)]
+        async def sources(self):
+            return [{"id":1,"name":"node-a","protocol":"sftp","status":0,"is_default":False}]
 
     monkeypatch.setattr(registry_module, "async_db_session", lambda: _FakeCtx())
-    monkeypatch.setattr(registry_module, "StorageNodeService", _FakeNodeService)
+    monkeypatch.setattr(registry_module, "StorageFileService", _FakeNodeService)
     tools = {tool.name: tool for tool in build_readonly_tools(None, None)}  # type: ignore[arg-type]
     result = await tools["storage_files"].func(source_name="missing")
     assert "error" in result

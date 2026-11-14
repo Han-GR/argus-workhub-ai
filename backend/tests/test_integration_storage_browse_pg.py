@@ -6,17 +6,18 @@ import os
 import uuid
 from contextlib import asynccontextmanager
 from io import BytesIO
-from types import SimpleNamespace
 from typing import AsyncIterator
 
 import pytest
 from fastapi import UploadFile
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.config.setting import settings
 from app.core.exceptions import CustomException
+from app.core.base_schema import AuthSchema
+from app.modules.system.user.model import UserModel
 from app.modules.task.storage.browse.service import StorageFileService
 from app.modules.task.storage.node.service import StorageNodeService
 
@@ -56,6 +57,7 @@ async def _make_node(db: AsyncSession, tmp_path, name: str, auth):
 
 async def _cleanup(name: str, root) -> None:
     async with _db() as db:
+        await db.execute(text("DELETE FROM task_archive_entry WHERE source_id IN (SELECT id FROM task_storage_node WHERE name=:n)"), {"n": name})
         await db.execute(text("DELETE FROM task_storage_node WHERE name=:n"), {"n": name})
         await db.commit()
     import shutil
@@ -63,15 +65,18 @@ async def _cleanup(name: str, root) -> None:
 
 
 async def test_upload_list_download_delete(test_client, tmp_path) -> None:
-    name = _name(); auth = SimpleNamespace(user=SimpleNamespace(id=0))
+    name = _name()
     try:
         async with _db() as db:
+            user_id = await db.scalar(select(UserModel.id).where(UserModel.username == "super"))
+            auth = AuthSchema(user={"id": user_id})
             node = await _make_node(db, tmp_path, name, auth)
             service = StorageFileService(auth, db)
+            await service.mkdir(node.id, "dir")
             result = await service.upload(node.id, _upload("a.txt"), "dir/a.txt")
             assert result.file_path == "dir/a.txt"
             items = await service.list_files(node.id, "dir", page_size=10, cursor=None)
-            assert any(item.name == "a.txt" for item in items.items)
+            assert any(item["name"] == "a.txt" for item in items["items"])
             local, filename = await service.download(node.id, "dir/a.txt")
             assert filename == "a.txt"
             from pathlib import Path
@@ -79,31 +84,35 @@ async def test_upload_list_download_delete(test_client, tmp_path) -> None:
             Path(local).unlink()
             await service.delete(node.id, "dir/a.txt")
             items = await service.list_files(node.id, "dir", page_size=10, cursor=None)
-            assert not any(item.name == "a.txt" for item in items.items)
+            assert not any(item["name"] == "a.txt" for item in items["items"])
     finally:
         await _cleanup(name, tmp_path / name)
 
 
 async def test_mkdir_rename_delete_dir(test_client, tmp_path) -> None:
-    name = _name(); auth = SimpleNamespace(user=SimpleNamespace(id=0))
+    name = _name()
     try:
         async with _db() as db:
+            user_id = await db.scalar(select(UserModel.id).where(UserModel.username == "super"))
+            auth = AuthSchema(user={"id": user_id})
             node = await _make_node(db, tmp_path, name, auth)
             service = StorageFileService(auth, db)
             await service.mkdir(node.id, "d1")
             await service.upload(node.id, _upload("a.txt"), "d1/a.txt")
             await service.rename(node.id, "d1", "d2")
             items = await service.list_files(node.id, "d2", page_size=10, cursor=None)
-            assert any(item.name == "a.txt" for item in items.items)
+            assert any(item["name"] == "a.txt" for item in items["items"])
             await service.delete(node.id, "d2")
     finally:
         await _cleanup(name, tmp_path / name)
 
 
 async def test_upload_traversal_rejected(test_client, tmp_path) -> None:
-    name = _name(); auth = SimpleNamespace(user=SimpleNamespace(id=0))
+    name = _name()
     try:
         async with _db() as db:
+            user_id = await db.scalar(select(UserModel.id).where(UserModel.username == "super"))
+            auth = AuthSchema(user={"id": user_id})
             node = await _make_node(db, tmp_path, name, auth)
             service = StorageFileService(auth, db)
             with pytest.raises(CustomException, match="非法"):

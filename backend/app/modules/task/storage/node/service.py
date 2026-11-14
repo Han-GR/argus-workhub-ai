@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import ColumnElement, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.path_conf import BASE_DIR
 from app.core.base_schema import AuthSchema, PageResultSchema
 from app.core.exceptions import CustomException
 from app.modules.task.storage.core.base import (
@@ -49,7 +51,7 @@ class StorageNodeService:
     @staticmethod
     def _build_config_from(source: Any, password: str) -> StorageAdapterConfig:
         """从 ORM 或表单对象构造适配器配置（password 为明文，统一处理端口/高级配置）。"""
-        return StorageAdapterConfig(
+        config = StorageAdapterConfig(
             protocol=StorageProtocol(source.protocol),
             host=source.host,
             port=source.port or DEFAULT_PORTS[StorageProtocol(source.protocol)],
@@ -70,6 +72,10 @@ class StorageNodeService:
             multipart_memory_budget=source.multipart_memory_budget,
             advanced_config=source.advanced_config or {},
         )
+
+        if config.protocol == StorageProtocol.LOCAL and config.host and not Path(config.host).is_absolute():
+            config.host = str(BASE_DIR / config.host)
+        return config
 
     @staticmethod
     def _build_config(obj: StorageNodeModel) -> StorageAdapterConfig:

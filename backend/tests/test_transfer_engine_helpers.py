@@ -12,7 +12,8 @@ import app.modules.task.storage.transfer.engine as E
 
 
 def test_local_helpers(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
-    f = tmp_path / "a.txt"; f.write_text("x")
+    monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
+    f = tmp_path / "transfer_upload_test.txt"; f.write_text("x")
     task = SimpleNamespace(source_type="local", source_path=str(f))
     E._remove_local_temp(task)
     assert not f.exists()

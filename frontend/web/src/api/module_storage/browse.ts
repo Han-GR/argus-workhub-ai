@@ -2,7 +2,21 @@ import { request } from "@utils";
 
 const API_PATH = "/task/storage/browse";
 
+export type ArchiveVisibility = "private" | "department" | "company";
+export interface ArchiveSource {
+  id: number;
+  name: string;
+  protocol: string;
+  bucket?: string;
+  is_default: boolean;
+}
 const StorageAPI = {
+  sources() {
+    return request<ApiResponse<ArchiveSource[]>>({ url: `${API_PATH}/sources`, method: "get" });
+  },
+  setVisibility(body: FilePathBody & { visibility: ArchiveVisibility }) {
+    return request<ApiResponse>({ url: `${API_PATH}/visibility`, method: "put", data: body });
+  },
   /** 查询文件/目录列表。传 page_no/page_size 时分页返回（PageResult），否则返回全量数组。 */
   listFiles(params?: FileListParams) {
     return request<ApiResponse<StorageObject[] | StoragePageResult>>({
@@ -82,7 +96,12 @@ const StorageAPI = {
   },
 
   /** 新建目录 */
-  mkdir(body: { source_id?: number | null; remote_dir: string; bucket?: string }) {
+  mkdir(body: {
+    source_id?: number | null;
+    remote_dir: string;
+    visibility?: ArchiveVisibility;
+    bucket?: string;
+  }) {
     return request<ApiResponse<Record<string, unknown>>>({
       url: `${API_PATH}/mkdir`,
       method: "post",
@@ -156,6 +175,12 @@ export interface FileCopyBody {
 }
 
 export interface StorageObject {
+  visibility?: ArchiveVisibility;
+  owner_id?: number;
+  owner_name?: string;
+  dept_name?: string;
+  inherited?: boolean;
+  can_manage?: boolean;
   name?: string;
   key?: string;
   is_dir?: boolean;

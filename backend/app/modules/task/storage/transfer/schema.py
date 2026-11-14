@@ -1,3 +1,5 @@
+import os
+import tempfile
 from datetime import datetime
 from typing import Literal
 
@@ -9,6 +11,18 @@ TransferStatus = Literal["pending", "running", "success", "failed", "canceled"]
 TransferTaskType = Literal["parallel", "chain"]
 TransferSourceType = Literal["local", "remote"]
 TransferMode = Literal["stream", "multipart"]
+
+
+def validate_raw_transfer_path(path: str) -> None:
+    parts = [part for part in path.replace("\\", "/").split("/") if part not in ("", ".")]
+    if not parts or ".." in parts or "_argus_archive" in [part.casefold() for part in parts] or "\x00" in path:
+        raise ValueError("原始传输不能访问存储根目录或档案保留目录，请使用文件管理复制或移动")
+
+
+def is_managed_transfer_temp(path: str) -> bool:
+    return (not os.path.islink(path) and not os.path.isdir(path)
+            and os.path.dirname(os.path.realpath(path)) == os.path.realpath(tempfile.gettempdir())
+            and os.path.basename(path).startswith("transfer_upload_"))
 
 
 class TransferTargetSchema(BaseModel):
@@ -33,10 +47,16 @@ class TransferTaskCreateSchema(BaseModel):
 
     @model_validator(mode="after")
     def validate_source(self):
+        if self.source_type == "local" and (self.source_id is not None or self.source_path is not None):
+            raise ValueError("本地源路径由服务端上传接口生成，不能指定服务器文件")
         if self.source_type == "remote" and not self.source_id:
             raise ValueError("远端源必须指定源存储源 source_id")
         if self.source_type == "remote" and not self.source_path:
             raise ValueError("远端源必须指定源路径 source_path")
+        if self.source_type == "remote":
+            validate_raw_transfer_path(self.source_path)
+        for target in self.targets:
+            validate_raw_transfer_path(target.target_path)
         return self
 
 

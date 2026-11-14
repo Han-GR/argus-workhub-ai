@@ -1,12 +1,12 @@
 [
   {
-    "name": "本地上传目录",
+    "name": "本地档案存储",
     "protocol": "local",
-    "host": "static/upload",
+    "host": "data/archive",
     "port": 0,
     "path_prefix": null,
     "is_default": true,
     "status": 0,
-    "description": "系统内置本地存储：backend/static/upload 目录（随应用启动自动创建）"
+    "description": "受权限控制的私有档案存储，不通过静态地址公开访问"
   }
 ]

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import tempfile
+from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
@@ -11,12 +13,12 @@ import app.modules.task.storage.transfer.engine as E
 
 
 def _task(**kw):
-    base = dict(id=1, status="pending", source_type="local", source_id=None, source_path="", source_size=None, total_size=0, transferred_size=0, progress=0, speed=0.0, error_msg=None, finished_at=None, is_deleted=False, created_id=1)
+    base = dict(id=1, status="pending", source_type="local", source_id=None, source_path=str(Path(tempfile.gettempdir()) / "transfer_upload_test.txt"), source_size=None, total_size=0, transferred_size=0, progress=0, speed=0.0, error_msg=None, finished_at=None, is_deleted=False, created_id=1)
     base.update(kw); return SimpleNamespace(**base)
 
 
 def _step(**kw):
-    base = dict(step_order=0, status="pending", total_size=0, transferred_size=0, speed=0.0, progress=0, error_msg=None, started_at=None, finished_at=None)
+    base = dict(source_id=None, source_path=str(Path(tempfile.gettempdir()) / "transfer_upload_test.txt"), target_path="out.txt", step_order=0, status="pending", total_size=0, transferred_size=0, speed=0.0, progress=0, error_msg=None, started_at=None, finished_at=None)
     base.update(kw); return SimpleNamespace(**base)
 
 

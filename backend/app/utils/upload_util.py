@@ -354,6 +354,8 @@ class UploadUtil:
                 continue
             # 移除危险字符
             part = re.sub(r'[<>:"|?*\x00-\x1f]', "", part)
+            if part.casefold() == "_argus_archive":
+                raise CustomException(msg="不能写入档案保留目录")
             if part and part != "..":
                 safe_parts.append(part)
 

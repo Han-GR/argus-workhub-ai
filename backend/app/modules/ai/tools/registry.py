@@ -14,13 +14,10 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
-
 from app.core.base_schema import AuthSchema
 from app.core.database import async_db_session
 from app.core.logger import logger
 from app.modules.task.storage.browse.service import StorageFileService
-from app.modules.task.storage.core.base import StoragePage
-from app.modules.task.storage.node.service import StorageNodeService
 
 # 单次返回的条目上限（防止把大结果塞进上下文）
 _MAX_ENTRIES = 200
@@ -37,7 +34,7 @@ class ReadonlyToolSpec:
 
 def _error(action: str, exc: BaseException) -> dict[str, Any]:
     logger.warning(f"AI 只读工具[{action}]失败: {type(exc).__name__}: {exc}")
-    return {"error": f"{action}失败: {type(exc).__name__}: {exc}"[:300]}
+    return {"error": f"{action}失败，请检查访问权限或稍后重试"}
 
 
 def build_readonly_tools(auth: AuthSchema, redis: Any | None = None) -> list[ReadonlyToolSpec]:
@@ -47,17 +44,7 @@ def build_readonly_tools(auth: AuthSchema, redis: Any | None = None) -> list[Rea
         """列出已配置的存储源（名称、协议、状态；不含地址与凭据）。"""
         try:
             async with async_db_session() as db:
-                nodes = await StorageNodeService(auth, db).get_list()
-                return [
-                    {
-                        "id": node.id,
-                        "name": node.name,
-                        "protocol": node.protocol,
-                        "status": node.status,
-                        "is_default": node.is_default,
-                    }
-                    for node in nodes
-                ]
+                return await StorageFileService(auth, db).sources()
         except Exception as exc:
             return [_error("列出存储源", exc)]
 
@@ -65,36 +52,15 @@ def build_readonly_tools(auth: AuthSchema, redis: Any | None = None) -> list[Rea
         """列出某个存储源指定目录下的文件与子目录（source_name 必填）。"""
         try:
             async with async_db_session() as db:
-                nodes = await StorageNodeService(auth, db).get_list()
-                node = next((item for item in nodes if item.name == source_name), None)
+                service = StorageFileService(auth, db)
+                nodes = await service.sources()
+                node = next((item for item in nodes if item["name"] == source_name), None)
                 if node is None:
-                    names = [item.name for item in nodes][:20]
-                    return {"error": f"存储源不存在: {source_name}", "available": names}
-                result = await StorageFileService(auth, db).list_files(
-                    source_id=node.id,
-                    prefix=path or "",
-                    bucket=bucket or None,
-                    page_size=_MAX_ENTRIES,
-                )
-            if isinstance(result, StoragePage):
-                return {
-                    "source": source_name,
-                    "path": path,
-                    "entries": [
-                        {"name": entry.name, "is_dir": entry.is_dir, "size": entry.size}
-                        for entry in result.items[:_MAX_ENTRIES]
-                    ],
-                    "has_next": result.has_next,
-                }
-            return {
-                "source": source_name,
-                "path": path,
-                "entries": [
-                    {"name": entry.name, "is_dir": entry.is_dir, "size": entry.size}
-                    for entry in result[:_MAX_ENTRIES]
-                ],
-                "has_next": False,
-            }
+                    return {"error": f"存储源不存在: {source_name}", "available": [item["name"] for item in nodes][:20]}
+                result = await service.list_files(source_id=node["id"], prefix=path or "", bucket=bucket or None, page_size=_MAX_ENTRIES)
+                return {"source": source_name, "path": path,
+                        "entries": [{"name": e["name"], "is_dir": e["is_dir"], "size": e["size"]} for e in result["items"]],
+                        "has_next": result["has_next"]}
         except Exception as exc:
             return _error("列出存储文件", exc)
 

@@ -50,7 +50,8 @@ async def test_cancel_pending_and_running(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 async def test_delete_marks_cancel_and_removes_temp(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    f = tmp_path / "t.txt"; f.write_text("x")
+    monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
+    f = tmp_path / "transfer_upload_test.txt"; f.write_text("x")
     task = SimpleNamespace(id=3, source_type="local", source_path=str(f))
     crud = Crud(); svc = _svc(crud, DB([task]))
     from app.modules.task.storage.transfer.registry import transfer_task_registry

@@ -27,7 +27,7 @@ from app.modules.task.storage.transfer.registry import transfer_task_registry
 from app.modules.task.storage.transfer.sse_manager import transfer_stream_manager
 
 from .model import StorageTransferStepModel, StorageTransferTaskModel
-from .schema import TransferMode, TransferStepOutSchema, TransferTaskOutSchema
+from .schema import TransferMode, TransferStepOutSchema, TransferTaskOutSchema, is_managed_transfer_temp, validate_raw_transfer_path
 
 # 单步最大可显示进度（步骤执行中为流动状态，完成后置 100）
 _STEP_RUNNING_PROGRESS = 50
@@ -59,12 +59,15 @@ async def _build_config(db: AsyncSession, source_id: int) -> StorageAdapterConfi
     source = await db.get(StorageNodeModel, source_id)
     if source is None or source.status == 1:
         return None
-    return StorageNodeService._build_config(source)
+    config = StorageNodeService._build_config(source)
+    if config.protocol == "local" and "_argus_archive" in os.path.realpath(config.host or "").casefold().split(os.sep):
+        raise ValueError("原始传输不能访问档案保留目录")
+    return config
 
 
 def _remove_local_temp(task: StorageTransferTaskModel) -> None:
     """清理本地源任务的临时文件（幂等：文件不存在时静默忽略）。目录源为本地真实目录，不删除。"""
-    if task.source_type == "local" and task.source_path and os.path.isfile(task.source_path):
+    if task.source_type == "local" and task.source_path and is_managed_transfer_temp(task.source_path) and os.path.isfile(task.source_path):
         try:
             os.unlink(task.source_path)
         except OSError:
@@ -174,6 +177,11 @@ async def _run_step(db: AsyncSession, task: StorageTransferTaskModel, step: Stor
     src_adapter = None
     dst_adapter = None
     try:
+        if step.source_id is None and not is_managed_transfer_temp(step.source_path or ""):
+            raise ValueError("本地源只能读取服务端为该上传生成的临时文件")
+        validate_raw_transfer_path(step.target_path)
+        if step.source_id is not None:
+            validate_raw_transfer_path(step.source_path or "")
         # 解析源：目录（远端递归下载/本地直接引用）与单文件分别处理
         is_dir_source = False
         if step.source_id is not None:
@@ -314,6 +322,20 @@ async def _execute_transfer_task(task_id: int) -> None:
             task.error_msg = "任务没有可执行的步骤"
             task.finished_at = datetime.now(UTC)
             await db.commit()
+            return
+
+        try:
+            if task.source_type == "local" and not is_managed_transfer_temp(task.source_path or ""):
+                raise ValueError("本地源只能读取上传接口生成的临时文件")
+            for step in steps:
+                validate_raw_transfer_path(step.target_path)
+                if step.source_id is not None:
+                    validate_raw_transfer_path(step.source_path or "")
+        except ValueError as exc:
+            task.status, task.error_msg = "failed", str(exc)
+            task.finished_at = datetime.now(UTC)
+            await db.commit()
+            await _broadcast(task, steps)
             return
 
         # 解析源文件大小，用于总进度估算
