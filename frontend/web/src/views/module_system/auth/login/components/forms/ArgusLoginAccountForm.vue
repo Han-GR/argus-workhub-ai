@@ -1,4 +1,4 @@
-<!-- 账号密码登录表单（含快捷账号、验证码、滑块） -->
+<!-- 账号密码登录表单（含验证码、滑块） -->
 <template>
   <div>
     <ElForm
@@ -10,25 +10,6 @@
       :validate-on-rule-change="false"
       @keyup.enter="$emit('submit')"
     >
-      <ElFormItem>
-        <ElSelect
-          :model-value="demoAccountKey"
-          class="custom-height w-full"
-          popper-class="login-account-dropdown"
-          :placeholder="$t('login.quickSelectAccount')"
-          @update:model-value="$emit('setupAccount', $event as AccountKey)"
-        >
-          <ElOption
-            v-for="account in accounts"
-            :key="account.key"
-            :label="account.label"
-            :value="account.key"
-          >
-            <span>{{ account.label }}</span>
-          </ElOption>
-        </ElSelect>
-      </ElFormItem>
-
       <ElFormItem prop="username">
         <ElInput
           class="custom-height"
@@ -138,7 +119,6 @@
 <script setup lang="ts">
 import type { CaptchaInfo, LoginFormData } from "@/api/module_system/auth";
 import type { FormRules } from "element-plus";
-import type { Account, AccountKey } from "@views/module_system/auth/login/types";
 
 const loginForm = defineModel<LoginFormData>("loginForm", { required: true });
 
@@ -148,8 +128,6 @@ interface Props {
   rules: FormRules;
   captchaState: CaptchaInfo;
   codeLoading: boolean;
-  demoAccountKey: AccountKey;
-  accounts: Account[];
   formKey: number | string;
   isDark: boolean;
   dragVerifyTextColor: string;
@@ -163,7 +141,6 @@ const isClickPass = defineModel<boolean>("isClickPass", { required: true });
 
 interface Emits {
   submit: [];
-  setupAccount: [key: AccountKey];
   getCaptcha: [];
   forget: [];
   register: [];

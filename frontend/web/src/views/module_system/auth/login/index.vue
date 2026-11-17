@@ -51,14 +51,11 @@
                         :rules="rules"
                         :captcha-state="captchaState"
                         :code-loading="codeLoading"
-                        :demo-account-key="demoAccountKey"
-                        :accounts="accounts"
                         :form-key="formKey"
                         :is-dark="isDark"
                         :drag-verify-text-color="dragVerifyTextColor"
                         :loading="loading"
                         @submit="handleSubmit"
-                        @setup-account="setupAccount"
                         @get-captcha="getCaptcha"
                         @forget="setAuthPanel('forget')"
                         @register="setAuthPanel('register')"
@@ -139,7 +136,6 @@ import { useConfigStore, useAppStore, useSettingsStore, useUserStore } from "@st
 import { HttpError } from "@utils";
 import { ElMessage } from "element-plus";
 import type { FormRules } from "element-plus";
-import type { Account, AccountKey } from "./types";
 import { useLoginPanelAlign } from "./components/composables/useLoginPanelAlign";
 import type ArgusLoginAccountForm from "./components/forms/ArgusLoginAccountForm.vue";
 import type ArgusLoginRegisterPanel from "./components/panels/ArgusLoginRegisterPanel.vue";
@@ -198,31 +194,6 @@ watch(authPanel, (panel) => {
   isClickPass.value = false;
 });
 
-const accounts = computed<Account[]>(() => [
-  {
-    key: "super",
-    label: t("login.roles.super"),
-    username: "super",
-    password: "123456",
-    roles: ["R_SUPER"],
-  },
-  {
-    key: "admin",
-    label: t("login.roles.admin"),
-    username: "admin",
-    password: "123456",
-    roles: ["R_ADMIN"],
-  },
-  {
-    key: "user",
-    label: t("login.roles.user"),
-    username: "chenyue",
-    password: "123456",
-    roles: ["R_USER"],
-  },
-]);
-
-const demoAccountKey = ref<AccountKey>("super");
 const userStore = useUserStore();
 const router = useRouter();
 const route = useRoute();
@@ -345,13 +316,6 @@ const rules = computed<FormRules>(() => {
   return base;
 });
 
-function setupAccount(key: AccountKey) {
-  const selected = accounts.value.find((a: Account) => a.key === key);
-  demoAccountKey.value = key;
-  loginForm.username = selected?.username ?? "";
-  loginForm.password = selected?.password ?? "";
-}
-
 async function getCaptcha() {
   try {
     codeLoading.value = true;
@@ -411,7 +375,6 @@ function resolveRedirectTarget(query: LocationQuery): RouteLocationRaw {
 }
 
 onMounted(async () => {
-  setupAccount("super");
   await configStore.getConfig(true);
   if (userStore.isLogin) {
     await router.replace(resolveRedirectTarget(route.query));
